@@ -53,8 +53,8 @@
     "compression": "normal",
     "publish": {
       "provider": "github",
-      "owner": "usgrp",
-      "repo": "override-center"
+      "owner": "communityorg-discord",
+      "repo": "usgrp-override-center"
     }
   },
   "dependencies": {

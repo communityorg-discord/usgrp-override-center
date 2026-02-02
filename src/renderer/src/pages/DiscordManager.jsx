@@ -75,7 +75,7 @@ export default function DiscordManager() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="User ID (e.g., 723199054514749450)"
-                    className="flex-1 bg-surface-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-gold focus:outline-none"
+                    className="flex-1 bg-white border border-gray-300 rounded-lg px-4 py-2 text-black placeholder-gray-500 focus:border-gold focus:outline-none"
                 />
                 <button
                     type="submit"
