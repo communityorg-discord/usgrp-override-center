@@ -43,7 +43,7 @@ export default function Login({ onLogin, embedded = false }) {
 
         try {
             const apiBase = await window.electron.api.getBase();
-            const response = await fetch(`https://auth.usgrp.xyz/api/override/verify`, {
+            const response = await fetch(`${apiBase}/override/auth/verify`, {
                 headers: { 'X-Override-Token': token }
             });
 
