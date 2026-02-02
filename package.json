@@ -52,8 +52,9 @@
     },
     "compression": "normal",
     "publish": {
-      "provider": "generic",
-      "url": "https://admin.usgrp.xyz/updates/"
+      "provider": "github",
+      "owner": "usgrp",
+      "repo": "override-center"
     }
   },
   "dependencies": {
