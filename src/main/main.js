@@ -201,9 +201,29 @@ function createApplicationMenu() {
                 { role: 'reload', accelerator: 'CmdOrCtrl+R' },
                 { role: 'forceReload', accelerator: 'CmdOrCtrl+Shift+R' },
                 { type: 'separator' },
-                { role: 'zoomIn', accelerator: 'CmdOrCtrl+=' },
-                { role: 'zoomOut', accelerator: 'CmdOrCtrl+-' },
-                { role: 'resetZoom', accelerator: 'CmdOrCtrl+0' },
+                { 
+                    label: 'Zoom In', 
+                    accelerator: 'CmdOrCtrl+=',
+                    click: () => {
+                        const currentZoom = mainWindow.webContents.getZoomFactor();
+                        mainWindow.webContents.setZoomFactor(currentZoom + 0.1);
+                    }
+                },
+                { 
+                    label: 'Zoom Out', 
+                    accelerator: 'CmdOrCtrl+-',
+                    click: () => {
+                        const currentZoom = mainWindow.webContents.getZoomFactor();
+                        mainWindow.webContents.setZoomFactor(Math.max(0.5, currentZoom - 0.1));
+                    }
+                },
+                { 
+                    label: 'Reset Zoom', 
+                    accelerator: 'CmdOrCtrl+0',
+                    click: () => {
+                        mainWindow.webContents.setZoomFactor(1.0);
+                    }
+                },
                 { type: 'separator' },
                 { role: 'togglefullscreen' },
                 { type: 'separator' },
