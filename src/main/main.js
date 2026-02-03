@@ -573,7 +573,20 @@ function setupIPC() {
     ipcMain.handle('updater:check', async () => {
         try {
             sendToRenderer('update-checking', {});
-            const result = await autoUpdater.checkForUpdatesAndNotify();
+            
+            // Add timeout to prevent infinite spinning
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Update check timed out')), 15000);
+            });
+            
+            const checkPromise = autoUpdater.checkForUpdatesAndNotify();
+            const result = await Promise.race([checkPromise, timeoutPromise]);
+            
+            // If we get here without update-available/not-available being sent, send not-available
+            if (!result || !result.updateInfo) {
+                sendToRenderer('update-not-available', {});
+            }
+            
             return result;
         } catch (error) {
             console.error('[AutoUpdater] Check failed:', error);
