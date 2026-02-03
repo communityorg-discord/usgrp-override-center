@@ -359,6 +359,13 @@ function setupAutoUpdater() {
     autoUpdater.logger = require('electron-log');
     autoUpdater.logger.transports.file.level = 'info';
     
+    // Use GitHub for releases (GitHub Actions builds there)
+    autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'communityorg-discord',
+        repo: 'usgrp-override-center'
+    });
+    
     autoUpdater.on('checking-for-update', () => {
         console.log('[AutoUpdater] Checking for update...');
         sendToRenderer('update-checking', {});
