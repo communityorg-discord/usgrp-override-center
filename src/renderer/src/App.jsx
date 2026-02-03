@@ -33,6 +33,9 @@ import SecretsVault from './pages/SecretsVault';
 import SSLMonitor from './pages/SSLMonitor';
 import AuditTimeline from './pages/AuditTimeline';
 import RateLimits from './pages/RateLimits';
+import DependencyGraph from './pages/DependencyGraph';
+import Migrations from './pages/Migrations';
+import MobileAlerts from './pages/MobileAlerts';
 import Chat from './components/Chat';
 import Login from './pages/Login';
 import UpdateNotification from './components/UpdateNotification';
@@ -289,6 +292,9 @@ export default function App() {
                         <Route path="/ssl" element={<SSLMonitor />} />
                         <Route path="/timeline" element={<AuditTimeline />} />
                         <Route path="/ratelimits" element={<RateLimits />} />
+                        <Route path="/graph" element={<DependencyGraph />} />
+                        <Route path="/migrations" element={<Migrations />} />
+                        <Route path="/alerts" element={<MobileAlerts />} />
                         <Route path="/servers" element={<Servers />} />
                         <Route path="/templates" element={<ServiceTemplates />} />
                         <Route path="/webhooks" element={<WebhookTester />} />
