@@ -130,6 +130,16 @@ contextBridge.exposeInMainWorld('electron', {
         simulate: (params) => ipcRenderer.invoke('economy:simulate', params)
     },
 
+    // Atlas Brain Config
+    atlas: {
+        getConfig: () => ipcRenderer.invoke('override:atlas:config'),
+        saveConfig: (config) => ipcRenderer.invoke('override:atlas:config', config),
+        listMemory: () => ipcRenderer.invoke('override:atlas:memory', { action: 'list' }),
+        readMemory: (filename) => ipcRenderer.invoke('override:atlas:memory', { action: 'read', filename }),
+        writeMemory: (filename, content) => ipcRenderer.invoke('override:atlas:memory', { action: 'write', filename, content }),
+        deleteMemory: (filename) => ipcRenderer.invoke('override:atlas:memory', { action: 'delete', filename })
+    },
+
     // Script Runner
     scripts: {
         list: () => ipcRenderer.invoke('scripts:list'),

@@ -23,10 +23,10 @@ const AtlasBrainConfig = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const configData = await window.electron.ipcRenderer.invoke('override:atlas:config');
+      const configData = await window.electron.atlas.getConfig();
       if (configData) setConfig(configData);
 
-      const memoryData = await window.electron.ipcRenderer.invoke('override:atlas:memory', { action: 'list' });
+      const memoryData = await window.electron.atlas.listMemory();
       if (memoryData) setMemoryFiles(memoryData);
     } catch (error) {
       console.error('Failed to fetch Atlas brain data:', error);
@@ -38,7 +38,7 @@ const AtlasBrainConfig = () => {
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
-      const res = await window.electron.ipcRenderer.invoke('override:atlas:config', config);
+      const res = await window.electron.atlas.saveConfig(config);
       if (res && res.success) {
         alert('Atlas brain configuration updated successfully.');
       }
@@ -53,7 +53,7 @@ const AtlasBrainConfig = () => {
     if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
     
     try {
-      const res = await window.electron.ipcRenderer.invoke('override:atlas:memory', { action: 'delete', filename });
+      const res = await window.electron.atlas.deleteMemory(filename);
       if (res && res.success) {
         setMemoryFiles(memoryFiles.filter(f => f.name !== filename));
       }
