@@ -571,26 +571,31 @@ function setupIPC() {
     
     // Auto updater
     ipcMain.handle('updater:check', async () => {
+        sendToRenderer('update-checking', {});
+        
+        // Force timeout after 10 seconds no matter what
+        const timeoutId = setTimeout(() => {
+            console.log('[AutoUpdater] Check timed out after 10s');
+            sendToRenderer('update-error', 'Update check timed out. Try again later.');
+        }, 10000);
+        
         try {
-            sendToRenderer('update-checking', {});
+            const result = await autoUpdater.checkForUpdatesAndNotify();
+            clearTimeout(timeoutId);
             
-            // Add timeout to prevent infinite spinning
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Update check timed out')), 15000);
-            });
-            
-            const checkPromise = autoUpdater.checkForUpdatesAndNotify();
-            const result = await Promise.race([checkPromise, timeoutPromise]);
-            
-            // If we get here without update-available/not-available being sent, send not-available
+            // If no result, we're up to date
             if (!result || !result.updateInfo) {
                 sendToRenderer('update-not-available', {});
             }
             
             return result;
         } catch (error) {
+            clearTimeout(timeoutId);
             console.error('[AutoUpdater] Check failed:', error);
             sendToRenderer('update-error', error.message || 'Failed to check for updates');
+            throw error;
+        }
+    });
             throw error;
         }
     });
