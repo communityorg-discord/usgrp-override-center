@@ -531,18 +531,32 @@ async function checkAndAutoDownload() {
 const terminals = new Map();
 
 function setupTerminalIPC() {
-    ipcMain.handle('terminal:create', (event) => {
+    ipcMain.handle('terminal:create', async (event) => {
         // Security check
         if (!store.get('authToken')) {
             throw new Error('Unauthorized');
         }
 
         const id = Date.now().toString();
-        const shell = process.env[process.platform === 'win32' ? 'COMSPEC' : 'SHELL'] || '/bin/bash';
+        
+        // Get API base to determine VPS host
+        const apiBase = store.get('apiBase') || 'https://api.usgrp.xyz';
+        
+        // SSH to VPS instead of local shell
+        // Extract host from API URL or use default
+        let sshHost = 'usgrp.xyz';
+        try {
+            const url = new URL(apiBase);
+            sshHost = url.hostname.replace('api.', '');
+        } catch (e) {}
+        
+        const sshUser = 'vpcommunityorganisation';
+        const sshCommand = process.platform === 'win32' ? 'ssh' : '/usr/bin/ssh';
+        const sshArgs = ['-o', 'StrictHostKeyChecking=no', '-t', `${sshUser}@${sshHost}`];
         
         if (ptyModule) {
             try {
-                const ptyProcess = ptyModule.spawn(shell, [], {
+                const ptyProcess = ptyModule.spawn(sshCommand, sshArgs, {
                     name: 'xterm-256color',
                     cols: 80,
                     rows: 24,
@@ -572,8 +586,8 @@ function setupTerminalIPC() {
         }
 
         // Fallback using child_process
-        console.log('Using child_process fallback for terminal');
-        const cp = require('child_process').spawn(shell, [], {
+        console.log('Using child_process fallback for terminal (SSH)');
+        const cp = require('child_process').spawn(sshCommand, sshArgs, {
             cwd: process.env.HOME || process.cwd(),
             env: process.env,
             shell: true

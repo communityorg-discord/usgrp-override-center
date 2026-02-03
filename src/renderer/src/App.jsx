@@ -108,11 +108,21 @@ export default function App() {
             
             // Apply theme preset
             root.classList.remove('light-theme', 'dark-theme', 'oled-theme', 'midnight-theme');
-            root.classList.add(`${theme}-theme`);
+            const themeMode = await window.electron.store.get('themeMode') || theme;
+            root.classList.add(`${themeMode}-theme`);
+            
+            // Apply gradient
+            const gradientColor1 = await window.electron.store.get('gradientColor1') || accentColor;
+            const gradientColor2 = await window.electron.store.get('gradientColor2') || '#B8860B';
+            const gradientAngle = await window.electron.store.get('gradientAngle') || 135;
+            const gradient = `linear-gradient(${gradientAngle}deg, ${gradientColor1}, ${gradientColor2})`;
+            root.style.setProperty('--gradient-primary', gradient);
+            root.style.setProperty('--gradient-color-1', gradientColor1);
+            root.style.setProperty('--gradient-color-2', gradientColor2);
             
             // Apply accent color
-            root.style.setProperty('--gold', accentColor);
-            root.style.setProperty('--accent', accentColor);
+            root.style.setProperty('--gold', gradientColor1);
+            root.style.setProperty('--accent', gradientColor1);
             
             // Apply saturation
             root.style.setProperty('--saturation', `${saturation}%`);

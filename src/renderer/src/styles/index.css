@@ -16,6 +16,11 @@
     --gold-dark: #B8960C;
     --gold-muted: #A08520;
     
+    /* Gradient colors (customizable) */
+    --gradient-color-1: #D4AF37;
+    --gradient-color-2: #B8860B;
+    --gradient-primary: linear-gradient(135deg, var(--gradient-color-1), var(--gradient-color-2));
+    
     /* Surface colors - deeper, richer */
     --bg-primary: #050508;
     --bg-secondary: #0a0a10;
