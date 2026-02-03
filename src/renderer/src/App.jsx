@@ -84,6 +84,7 @@ export default function App() {
         initialize();
         setupEventListeners();
         setupKeyboardShortcuts();
+        applyStoredTheme();
         
         // Check for active impersonation
         const impUser = localStorage.getItem('impersonateUser');
@@ -92,6 +93,41 @@ export default function App() {
             setImpersonatingUser({ id: impUser, name: impName });
         }
     }, []);
+
+    async function applyStoredTheme() {
+        try {
+            const theme = await window.electron.store.get('theme') || 'dark';
+            const accentColor = await window.electron.store.get('accentColor') || '#D4AF37';
+            const saturation = await window.electron.store.get('saturation') || 100;
+            const fontFamily = await window.electron.store.get('fontFamily') || 'Inter';
+            const fontSize = await window.electron.store.get('fontSize') || 'normal';
+            const reduceMotion = await window.electron.store.get('reduceMotion') || false;
+            const compactMode = await window.electron.store.get('compactMode') || false;
+            
+            const root = document.documentElement;
+            
+            // Apply theme preset
+            root.classList.remove('light-theme', 'dark-theme', 'oled-theme', 'midnight-theme');
+            root.classList.add(`${theme}-theme`);
+            
+            // Apply accent color
+            root.style.setProperty('--gold', accentColor);
+            root.style.setProperty('--accent', accentColor);
+            
+            // Apply saturation
+            root.style.setProperty('--saturation', `${saturation}%`);
+            
+            // Apply font settings
+            root.style.setProperty('--font-family', fontFamily === 'system' ? 'system-ui' : fontFamily);
+            root.style.setProperty('--font-size', fontSize === 'small' ? '14px' : fontSize === 'large' ? '18px' : '16px');
+            
+            // Apply motion/compact
+            if (reduceMotion) root.classList.add('reduce-motion');
+            if (compactMode) root.classList.add('compact-mode');
+        } catch (error) {
+            console.error('Failed to apply stored theme:', error);
+        }
+    }
 
     async function initialize() {
         try {

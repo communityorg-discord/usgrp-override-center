@@ -263,11 +263,16 @@ export default function TransactionLog() {
                                                 {tx.type}
                                             </span>
                                         </td>
-                                        <td className={`py-3 px-4 text-sm font-mono text-right ${tx.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                            {tx.amount >= 0 ? '+' : ''}{formatMoney(tx.amount)}
+                                        <td className={`py-3 px-4 text-sm font-mono text-right ${
+                                            tx.type?.includes('withdraw') || tx.type?.includes('purchase') || tx.type === 'rent' 
+                                                ? 'text-red-400' 
+                                                : 'text-emerald-400'
+                                        }`}>
+                                            {tx.type?.includes('withdraw') || tx.type?.includes('purchase') || tx.type === 'rent' ? '-' : '+'}
+                                            {formatMoney(Math.abs(tx.amount))}
                                         </td>
                                         <td className="py-3 px-4 text-sm text-gray-400 font-mono text-right">
-                                            {formatMoney(tx.balance_after)}
+                                            {tx.balance_after != null ? formatMoney(tx.balance_after) : '-'}
                                         </td>
                                         <td className="py-3 px-4 text-sm text-gray-500 max-w-xs truncate" title={tx.description}>
                                             {tx.description || '-'}
