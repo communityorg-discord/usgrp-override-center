@@ -100,6 +100,14 @@ export default function Settings() {
     function applyTheme() {
         const root = document.documentElement;
         
+        // Function to hex to rgb
+        const hexToRgb = (hex) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `${r}, ${g}, ${b}`;
+        };
+        
         // Apply theme mode
         root.classList.remove('dark-theme', 'light-theme', 'oled-theme');
         root.classList.add(`${settings.themeMode}-theme`);
@@ -109,6 +117,8 @@ export default function Settings() {
         root.style.setProperty('--gradient-primary', gradient);
         root.style.setProperty('--gradient-color-1', settings.gradientColor1);
         root.style.setProperty('--gradient-color-2', settings.gradientColor2);
+        root.style.setProperty('--gradient-color-1-rgb', hexToRgb(settings.gradientColor1));
+        root.style.setProperty('--gradient-color-2-rgb', hexToRgb(settings.gradientColor2));
         
         // Apply accent (use first gradient color)
         root.style.setProperty('--gold', settings.gradientColor1);

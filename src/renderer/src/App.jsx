@@ -115,10 +115,22 @@ export default function App() {
             const gradientColor1 = await window.electron.store.get('gradientColor1') || accentColor;
             const gradientColor2 = await window.electron.store.get('gradientColor2') || '#B8860B';
             const gradientAngle = await window.electron.store.get('gradientAngle') || 135;
+            
+            const hexToRgb = (hex) => {
+                try {
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+                    return `${r}, ${g}, ${b}`;
+                } catch (e) { return '212, 175, 55'; }
+            };
+
             const gradient = `linear-gradient(${gradientAngle}deg, ${gradientColor1}, ${gradientColor2})`;
             root.style.setProperty('--gradient-primary', gradient);
             root.style.setProperty('--gradient-color-1', gradientColor1);
             root.style.setProperty('--gradient-color-2', gradientColor2);
+            root.style.setProperty('--gradient-color-1-rgb', hexToRgb(gradientColor1));
+            root.style.setProperty('--gradient-color-2-rgb', hexToRgb(gradientColor2));
             
             // Apply accent color
             root.style.setProperty('--gold', gradientColor1);
