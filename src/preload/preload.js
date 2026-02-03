@@ -140,6 +140,13 @@ contextBridge.exposeInMainWorld('electron', {
         deleteMemory: (filename) => ipcRenderer.invoke('override:atlas:memory', { action: 'delete', filename })
     },
 
+    // Screen Share Detection
+    screenShare: {
+        start: () => ipcRenderer.invoke('screen-share:start'),
+        stop: () => ipcRenderer.invoke('screen-share:stop'),
+        check: () => ipcRenderer.invoke('screen-share:check')
+    },
+
     // Script Runner
     scripts: {
         list: () => ipcRenderer.invoke('scripts:list'),

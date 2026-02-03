@@ -9,7 +9,7 @@ const { ipcMain, BrowserWindow } = require('electron');
 // Known screen capture processes
 const CAPTURE_PROCESSES = {
     windows: [
-        // Discord
+        // Discord - always flag as potential capture
         'discord.exe',
         // OBS
         'obs64.exe',
@@ -21,13 +21,18 @@ const CAPTURE_PROCESSES = {
         // NVIDIA
         'nvcontainer.exe', // ShadowPlay container
         'nvidia share.exe',
+        'nvspcaps64.exe',  // NVIDIA capture
+        'nvspcaps.exe',
         // Windows Game Bar
         'gamebar.exe',
         'gamebarftserver.exe',
+        'gamebarpresencewriter.exe',
         // Zoom
         'zoom.exe',
+        'zoomit.exe',
         // Teams
         'teams.exe',
+        'ms-teams.exe',
         // Loom
         'loom.exe',
         // Camtasia
@@ -48,6 +53,10 @@ const CAPTURE_PROCESSES = {
         // Snagit
         'snagit32.exe',
         'snagit.exe',
+        // Windows built-in
+        'snippingtool.exe',
+        // GeForce Experience
+        'nvsphelper64.exe',
     ],
     darwin: [
         'Discord',

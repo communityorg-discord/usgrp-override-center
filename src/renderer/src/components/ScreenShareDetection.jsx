@@ -21,6 +21,7 @@ export function ScreenShareProvider({ children }) {
         
         // Listen for screen capture detection
         const unsubscribe = window.electron?.on?.('screen-capture-detected', (data) => {
+            console.log('[ScreenShare] Detection event:', data);
             setIsDetected(data.detected);
             setDetectedApps(data.apps || []);
             
@@ -30,8 +31,21 @@ export function ScreenShareProvider({ children }) {
             }
         });
         
-        // Start monitoring
-        window.electron?.ipcRenderer?.invoke?.('screen-share:start');
+        // Start monitoring using the proper API
+        window.electron?.screenShare?.start?.().then(() => {
+            console.log('[ScreenShare] Monitoring started');
+        }).catch(err => {
+            console.error('[ScreenShare] Failed to start monitoring:', err);
+        });
+        
+        // Also do an immediate check
+        window.electron?.screenShare?.check?.().then(result => {
+            console.log('[ScreenShare] Initial check:', result);
+            if (result?.detected) {
+                setIsDetected(true);
+                setDetectedApps(result.apps || []);
+            }
+        });
         
         return () => {
             unsubscribe?.();
