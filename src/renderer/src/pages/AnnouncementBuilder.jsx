@@ -24,12 +24,37 @@ export default function AnnouncementBuilder() {
     const [sending, setSending] = useState(false);
     const [status, setStatus] = useState(null); // { type: 'success' | 'error', message: '' }
 
-    // Predefined channels (Mock data - ideally fetched from API)
+    // Predefined channels with webhooks (fetched from USGRP)
     const channels = [
-        { name: '📢 Announcements', url: 'https://discord.com/api/webhooks/...' },
-        { name: 'changelogs', url: 'https://discord.com/api/webhooks/...' },
-        { name: 'status', url: 'https://discord.com/api/webhooks/...' },
-        { name: 'dev-updates', url: 'https://discord.com/api/webhooks/...' }
+        { name: '📢 #announcements', id: '1459402644530528440', webhook: 'https://discord.com/api/webhooks/1465550844530397244/Z2DeQryL3X6oGp0moByN6ZtNcmvYnJ21U90UUnF-1bT6Z9Ts18WhoYBVqJsSSLdSu5_5' },
+        { name: '🔒 #server-audit-logs', id: '1462299339173920828', webhook: 'https://discord.com/api/webhooks/1465550863526531136/V9ZwWA4gim-sz4ve9W2rBbeMwEOI962h9vl2MqZKdb54-yuh4Qne3-KP7onyKIRHHi0s' },
+        { name: '💻 #dev-panel-and-approvals', id: '1459403164397867093', webhook: 'https://discord.com/api/webhooks/1465550866265276548/W2K92R5l2ztPojjvpFhNOd1KKAf_dHyluDVd_lkmlckNVYxMCyVmgqoBjx0a95Ki4pqZ' },
+        { name: '📰 #news-and-broadcasts', id: '1459402781029961909', webhook: '' },
+        { name: '📜 #executive-orders', id: '1459403051625611404', webhook: '' },
+        { name: '🏛️ #federal-announcements', id: '1462487094285828289', webhook: '' },
+        { name: '💬 #general-chat', id: '1459402664159875085', webhook: '' },
+        { name: '🤖 #bot-commands', id: '1459402975028973813', webhook: '' },
+        { name: '🧪 #dev-testing', id: '1459403193166462978', webhook: '' },
+        { name: '📋 #dev-logs', id: '1462670921444753429', webhook: '' },
+        { name: '👥 #staff-chat', id: '1459403108630270119', webhook: '' },
+        { name: '💰 #economy-audit-log', id: '1459403115764908095', webhook: '' },
+        { name: '⚖️ #courthouse', id: '1459402831982235688', webhook: '' },
+        { name: '🏠 #housing', id: '1461633040949182669', webhook: '' },
+        { name: '🎰 #shop', id: '1459443490663694357', webhook: '' },
+        { name: '👑 #vip-shop', id: '1459443492022521910', webhook: '' },
+        { name: '📊 #transactions', id: '1459443493821743289', webhook: '' },
+        { name: '🏇 #horse-racing', id: '1460899820335005727', webhook: '' },
+        { name: '🏢 #business-applications', id: '1462009324770426942', webhook: '' },
+        { name: '🔫 #crime-guide', id: '1462014106151288862', webhook: '' },
+        { name: '🚨 #fbi-tips', id: '1459402860868534333', webhook: '' },
+        { name: '🔍 #investigations', id: '1459403102045212819', webhook: '' },
+        { name: '🏛️ #oval-office', id: '1459403008843448371', webhook: '' },
+        { name: '📋 #approvals', id: '1459403071950950465', webhook: '' },
+        { name: '🎫 #ticket-transcripts', id: '1459403142914379827', webhook: '' },
+        { name: '🐛 #bug-report', id: '1459743227388104846', webhook: '' },
+        { name: '🗳️ #election-center', id: '1459402881131086037', webhook: '' },
+        { name: '📡 #white-house-oversight', id: '1465870443415077091', webhook: '' },
+        { name: '📝 #federal-action-log', id: '1465870444530896907', webhook: '' },
     ];
 
     const handleFieldChange = (index, key, value) => {
@@ -54,20 +79,23 @@ export default function AnnouncementBuilder() {
         setSending(true);
         setStatus(null);
         
-        const targetUrl = targetType === 'predefined' ? selectedChannel : webhookUrl;
+        const target = targetType === 'predefined' ? selectedChannel : webhookUrl;
         
-        if (!targetUrl) {
+        if (!target) {
             setStatus({ type: 'error', message: 'Please select a target channel or enter a webhook URL.' });
             setSending(false);
             return;
         }
+
+        // Determine if it's a webhook URL or channel ID
+        const isWebhook = target.startsWith('https://discord.com/api/webhooks/');
 
         try {
             const apiBase = await window.electron.api.getBase();
             const token = await window.electron.api.getToken();
             
             const payload = {
-                webhookUrl: targetUrl,
+                ...(isWebhook ? { webhookUrl: target } : { channelId: target }),
                 embed: {
                     ...embed,
                     color: parseInt(embed.color.replace('#', ''), 16),
@@ -168,7 +196,7 @@ export default function AnnouncementBuilder() {
                                     className="w-full bg-surface-secondary border border-gray-700 rounded p-2.5 text-gray-200 focus:border-gold focus:outline-none"
                                 >
                                     <option value="">Select a channel...</option>
-                                    {channels.map((c, i) => <option key={i} value={c.url}>{c.name}</option>)}
+                                    {channels.map((c, i) => <option key={i} value={c.webhook || c.id}>{c.name} {c.webhook ? '✓' : ''}</option>)}
                                 </select>
                             ) : (
                                 <input 
