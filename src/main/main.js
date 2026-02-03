@@ -359,14 +359,11 @@ function setupAutoUpdater() {
     autoUpdater.logger = require('electron-log');
     autoUpdater.logger.transports.file.level = 'info';
     
-    // Configure for Gitea (self-hosted)
+    // Use GitHub for releases (GitHub Actions builds there)
     autoUpdater.setFeedURL({
         provider: 'github',
-        owner: 'usgrp',
-        repo: 'usgrp-override-center',
-        host: 'git.usgrp.xyz',
-        protocol: 'https',
-        token: process.env.GITEA_TOKEN || 'b79ace6ca0fcb6f05ee1d49979c2e63a8f699a6a'
+        owner: 'communityorg-discord',
+        repo: 'usgrp-override-center'
     });
     
     autoUpdater.on('checking-for-update', () => {
