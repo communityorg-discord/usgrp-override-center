@@ -80,9 +80,12 @@ export default function Dashboard() {
                     }
                     break;
                 case 'panic-stop':
-                    if (confirm('⚠️ EMERGENCY: Stop ALL services?')) {
+                    const code = prompt('⚠️ EMERGENCY PANIC STOP\n\nThis will immediately stop ALL services.\n\nEnter security code to confirm:');
+                    if (code === '470303') {
                         await post('/override/pm2/panic');
                         await loadData();
+                    } else if (code !== null) {
+                        alert('Invalid security code. Panic stop cancelled.');
                     }
                     break;
             }

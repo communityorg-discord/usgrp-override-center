@@ -41,7 +41,11 @@ export default function Systems() {
     }
 
     async function handlePanic() {
-        if (!confirm('⚠️ EMERGENCY: This will STOP ALL services immediately.\n\nAre you absolutely sure?')) return;
+        const code = prompt('⚠️ EMERGENCY PANIC STOP\n\nThis will immediately stop ALL services.\n\nEnter security code to confirm:');
+        if (code !== '470303') {
+            if (code !== null) alert('Invalid security code. Panic stop cancelled.');
+            return;
+        }
         
         setActionLoading('panic');
         try {
