@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { usePiP, PiPTerminal, PiPLogs } from './PictureInPicture';
 
 // Navigation structure with grouped submenus
 const navigationItems = [
@@ -138,7 +139,9 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
     const [openSubmenu, setOpenSubmenu] = useState(null);
     const [isMobile, setIsMobile] = useState(false);
     const [showUserSearch, setShowUserSearch] = useState(false);
+    const [showPiPMenu, setShowPiPMenu] = useState(false);
     const toolbarRef = useRef(null);
+    const pip = usePiP();
     
     // Detect mobile
     useEffect(() => {
@@ -259,6 +262,41 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
                             title="Settings (Ctrl+,)"
                         />
                     </Link>
+                </div>
+
+                {/* PiP Menu */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowPiPMenu(!showPiPMenu)}
+                        className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                        title="Picture-in-Picture"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                    </button>
+                    {showPiPMenu && (
+                        <div className="absolute right-0 top-full mt-2 bg-gray-900 border border-white/10 rounded-xl shadow-2xl py-2 min-w-[180px] z-50">
+                            <button
+                                onClick={() => { pip?.openPiP('terminal', '📟 Terminal', () => <PiPTerminal />); setShowPiPMenu(false); }}
+                                className="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-white/10 flex items-center gap-2"
+                            >
+                                <span>📟</span> Mini Terminal
+                            </button>
+                            <button
+                                onClick={() => { pip?.openPiP('logs', '📋 API Logs', () => <PiPLogs service="api-gateway" />); setShowPiPMenu(false); }}
+                                className="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-white/10 flex items-center gap-2"
+                            >
+                                <span>📋</span> API Logs
+                            </button>
+                            <button
+                                onClick={() => { pip?.openPiP('bot-logs', '🤖 Bot Logs', () => <PiPLogs service="gov-utils" />); setShowPiPMenu(false); }}
+                                className="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-white/10 flex items-center gap-2"
+                            >
+                                <span>🤖</span> Bot Logs
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Profile */}
