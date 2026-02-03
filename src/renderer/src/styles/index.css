@@ -1386,3 +1386,76 @@ input[type="range"]::-webkit-slider-thumb:active {
 .toggle-switch input:checked + .slider:before {
     transform: translateX(20px);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN SHARE BLUR PROTECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+/* When screen share is detected, blur sensitive elements */
+.screen-share-blur .blur-sensitive,
+.screen-share-blur [data-sensitive="true"],
+.screen-share-blur .balance,
+.screen-share-blur .user-id,
+.screen-share-blur .token,
+.screen-share-blur .secret,
+.screen-share-blur .api-key,
+.screen-share-blur .password,
+.screen-share-blur .discord-id,
+.screen-share-blur .money-value,
+.screen-share-blur .transaction-id,
+.screen-share-blur .wallet-address {
+    filter: blur(8px);
+    transition: filter 0.3s ease;
+    user-select: none;
+}
+
+/* Hover to reveal (optional - for the user themselves) */
+.screen-share-blur .blur-sensitive:hover,
+.screen-share-blur [data-sensitive="true"]:hover {
+    filter: blur(4px);
+}
+
+/* Click and hold to fully reveal */
+.screen-share-blur .blur-sensitive:active,
+.screen-share-blur [data-sensitive="true"]:active {
+    filter: blur(0);
+}
+
+/* Add visual indicator to blurred elements */
+.screen-share-blur .blur-sensitive::after,
+.screen-share-blur [data-sensitive="true"]::after {
+    content: "🔒";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Animation for screen share banner */
+@keyframes slide-down {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-down {
+    animation: slide-down 0.3s ease-out;
+}
+
+/* Push content down when banner is showing */
+.screen-share-blur .app-content {
+    margin-top: 60px;
+}
+
+/* Red border on the entire app when detected */
+.screen-share-blur {
+    box-shadow: inset 0 0 0 3px rgba(239, 68, 68, 0.5);
+}

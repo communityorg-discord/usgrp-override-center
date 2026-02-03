@@ -173,7 +173,8 @@ contextBridge.exposeInMainWorld('electron', {
             'update-downloaded',
             'update-error',
             'update-progress',
-            'auth-success'
+            'auth-success',
+            'screen-capture-detected'
         ];
         
         if (allowedChannels.includes(channel)) {

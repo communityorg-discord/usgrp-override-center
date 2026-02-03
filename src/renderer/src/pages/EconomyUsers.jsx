@@ -151,12 +151,12 @@ export default function EconomyUsers() {
                                             <p className="text-white font-medium">
                                                 {user.username || 'Unknown User'}
                                             </p>
-                                            <p className="text-xs text-gray-500 font-mono mt-0.5">
+                                            <p className="text-xs text-gray-500 font-mono mt-0.5 blur-sensitive">
                                                 {user.discord_id}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-emerald-400 font-mono font-medium">
+                                            <p className="text-emerald-400 font-mono font-medium blur-sensitive">
                                                 {formatMoney(user.balance + user.bank_balance)}
                                             </p>
                                             <p className="text-xs text-gray-500">

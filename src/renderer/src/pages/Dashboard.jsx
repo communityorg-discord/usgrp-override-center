@@ -1086,9 +1086,9 @@ function CommunityDashboard({ data = {}, onRefresh }) {
                                     {earner.rank}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-white font-medium">{earner.name}</p>
+                                    <p className="text-white font-medium blur-sensitive">{earner.name}</p>
                                 </div>
-                                <p className="font-mono text-sm" style={{ color: '#D4AF37' }}>
+                                <p className="font-mono text-sm blur-sensitive" style={{ color: '#D4AF37' }}>
                                     ${earner.balance.toLocaleString()}
                                 </p>
                             </div>

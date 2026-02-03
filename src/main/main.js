@@ -14,6 +14,7 @@ const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 const os = require('os');
 const fg = require('fast-glob');
+const { setupScreenShareDetection } = require('./screenShareDetection');
 
 // Try to load node-pty for full terminal support
 let ptyModule;
@@ -1250,6 +1251,7 @@ app.whenReady().then(() => {
     setupTerminalIPC();
     setupAtlasBrainConfig();
     setupAutoUpdater();
+    setupScreenShareDetection(mainWindow);
     
     // Check if launched with protocol URL (Windows/Linux)
     const url = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`));

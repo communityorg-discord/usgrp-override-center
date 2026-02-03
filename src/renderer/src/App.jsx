@@ -69,6 +69,7 @@ import AnimatedBackground from './components/AnimatedBackground';
 import { PiPProvider } from './components/PictureInPicture';
 import { ContextMenuProvider } from './components/ContextMenu';
 import { SessionRecordingProvider } from './components/SessionRecording';
+import { ScreenShareProvider } from './components/ScreenShareDetection';
 import GlobalSearch from './components/GlobalSearch';
 import FraudDetection from './pages/FraudDetection';
 import RelationshipMapper from './pages/RelationshipMapper';
@@ -386,6 +387,7 @@ export default function App() {
     }
 
     return (
+        <ScreenShareProvider>
         <ContextMenuProvider>
         <PiPProvider>
         <SessionRecordingProvider>
@@ -548,5 +550,6 @@ export default function App() {
         </SessionRecordingProvider>
         </PiPProvider>
         </ContextMenuProvider>
+        </ScreenShareProvider>
     );
 }
