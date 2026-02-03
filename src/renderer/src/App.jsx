@@ -231,7 +231,7 @@ export default function App() {
             <div className="h-screen flex items-center justify-center bg-surface-primary">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-gold border-t-transparent rounded-full spin-slow mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading Override Center...</p>
+                    <p className="text-gray-400">Loading Developer Panel...</p>
                 </div>
             </div>
         );

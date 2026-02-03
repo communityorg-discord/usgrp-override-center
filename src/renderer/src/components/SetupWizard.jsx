@@ -133,7 +133,7 @@ export default function SetupWizard({ onComplete }) {
                                 Welcome, Superuser
                             </h2>
                             <p style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                                Authenticate to access the USGRP Override Center
+                                Authenticate to access the USGRP Developer Panel
                             </p>
                         </div>
                         <div 
@@ -262,7 +262,7 @@ export default function SetupWizard({ onComplete }) {
                             Setup Complete
                         </h2>
                         <p className="mb-8 max-w-md mx-auto" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                            Override Center is configured and ready. You have full superuser privileges.
+                            Developer Panel is configured and ready. You have full superuser privileges.
                         </p>
                         
                         {/* Summary */}

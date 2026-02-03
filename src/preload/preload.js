@@ -1,5 +1,5 @@
 /**
- * USGRP Override Center - Preload Script
+ * USGRP Developer Panel - Preload Script
  * 
  * Exposes secure APIs to the renderer process via contextBridge.
  */

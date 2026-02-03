@@ -1,5 +1,5 @@
 /**
- * USGRP Override Center - Main Process
+ * USGRP Developer Panel - Main Process
  * 
  * Electron main process handling window management, IPC, and system integration.
  */
@@ -270,7 +270,7 @@ function createTray() {
     
     const contextMenu = Menu.buildFromTemplate([
         { 
-            label: 'Show Override Center', 
+            label: 'Show Developer Panel', 
             click: () => mainWindow.show() 
         },
         { type: 'separator' },
@@ -295,7 +295,7 @@ function createTray() {
         }
     ]);
     
-    tray.setToolTip('USGRP Override Center');
+    tray.setToolTip('USGRP Developer Panel');
     tray.setContextMenu(contextMenu);
     
     tray.on('click', () => {
@@ -1212,7 +1212,7 @@ function setupAdvancedFeatures() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    content: '🔔 **Test Alert**\nThis is a test notification from USGRP Override Center.' 
+                    content: '🔔 **Test Alert**\nThis is a test notification from USGRP Developer Panel.' 
                 })
             });
         }
@@ -1223,7 +1223,7 @@ function setupAdvancedFeatures() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: config.telegramChatId,
-                    text: '🔔 *Test Alert*\nThis is a test notification from USGRP Override Center.',
+                    text: '🔔 *Test Alert*\nThis is a test notification from USGRP Developer Panel.',
                     parse_mode: 'Markdown'
                 })
             });

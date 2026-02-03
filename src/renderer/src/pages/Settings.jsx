@@ -514,7 +514,7 @@ function AccountSection({ user, sessions, onRevokeSession, onLogout }) {
                 <div className="space-y-3">
                     <InfoRow label="Login Time" value={new Date().toLocaleString()} />
                     <InfoRow label="Device" value={navigator.userAgent.includes('Windows') ? 'Windows' : navigator.userAgent.includes('Mac') ? 'macOS' : 'Linux'} />
-                    <InfoRow label="Application" value="USGRP Override Center (Desktop)" />
+                    <InfoRow label="Application" value="USGRP Developer Panel (Desktop)" />
                 </div>
             </div>
 
@@ -1088,10 +1088,13 @@ function AboutSection({ version, systemInfo, onCheckUpdates, onCopyDebug }) {
             
             {/* App Info */}
             <div className="card text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20 glow-pulse">
-                    <span className="text-4xl font-bold text-white">U</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">USGRP Override Center</h2>
+                <img 
+                    src={new URL('../assets/logo.png', import.meta.url).href}
+                    alt="USGRP"
+                    className="w-24 h-24 object-contain mx-auto mb-4"
+                />
+                <h2 className="text-2xl font-bold text-white">United States Government Roleplay</h2>
+                <p className="text-lg text-amber-400 font-semibold">Developer Panel</p>
                 <p className="text-gold font-semibold mt-1">v{version}</p>
                 <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto">
                     Superuser control panel for USGRP infrastructure and Discord server management

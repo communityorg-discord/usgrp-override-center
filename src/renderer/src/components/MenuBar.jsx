@@ -54,7 +54,7 @@ const menuConfig = [
             { type: 'separator' },
             { label: 'Check for Updates', action: 'help.checkUpdates' },
             { type: 'separator' },
-            { label: 'About Override Center', action: 'help.about' },
+            { label: 'About Developer Panel', action: 'help.about' },
         ]
     },
 ];

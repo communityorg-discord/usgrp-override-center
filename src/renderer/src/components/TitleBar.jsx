@@ -54,33 +54,17 @@ export default function TitleBar() {
             <div className="flex items-center gap-3 no-drag">
                 {/* Logo */}
                 <div className="relative">
-                    <div 
-                        className="w-7 h-7 rounded-lg flex items-center justify-center shadow-lg transition-all duration-300"
-                        style={{
-                            background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)',
-                            boxShadow: isHovered 
-                                ? '0 4px 20px rgba(212, 175, 55, 0.4)' 
-                                : '0 2px 10px rgba(212, 175, 55, 0.25)'
-                        }}
-                    >
-                        <span className="text-white font-bold text-sm" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                            U
-                        </span>
-                    </div>
-                    {/* Subtle glow effect */}
-                    <div 
-                        className="absolute inset-0 rounded-lg opacity-50 blur-lg transition-opacity duration-300"
-                        style={{
-                            background: 'radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%)',
-                            opacity: isHovered ? 0.7 : 0.3
-                        }}
+                    <img 
+                        src={new URL('../assets/logo.png', import.meta.url).href}
+                        alt="USGRP"
+                        className="w-7 h-7 rounded object-contain"
                     />
                 </div>
 
                 {/* App Name & Version */}
                 <div className="flex items-center gap-2.5">
                     <span className="font-semibold text-white text-sm tracking-tight">
-                        Override Center
+                        USGRP Developer Panel
                     </span>
                     <span 
                         className="text-xs font-mono px-1.5 py-0.5 rounded transition-colors duration-200"

@@ -170,35 +170,16 @@ export default function Login({ onLogin, embedded = false }) {
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
                     >
-                        {/* Glow effect */}
-                        <div 
-                            className="absolute inset-0 rounded-2xl transition-all duration-500"
+                        {/* Logo image */}
+                        <img 
+                            src={new URL('../assets/logo.png', import.meta.url).href}
+                            alt="USGRP"
+                            className="w-24 h-24 object-contain transition-transform duration-300"
                             style={{
-                                background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)',
-                                filter: `blur(${isHovering ? '30px' : '20px'})`,
-                                opacity: isHovering ? 0.5 : 0.3,
-                                transform: `scale(${isHovering ? 1.2 : 1})`
+                                transform: isHovering ? 'translateY(-4px) scale(1.05)' : 'translateY(0) scale(1)',
+                                filter: 'drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3))'
                             }}
                         />
-                        
-                        {/* Logo container */}
-                        <div 
-                            className="relative w-24 h-24 rounded-2xl flex items-center justify-center transition-all duration-300"
-                            style={{
-                                background: 'linear-gradient(145deg, #D4AF37 0%, #B8960C 100%)',
-                                boxShadow: isHovering 
-                                    ? '0 20px 60px rgba(212, 175, 55, 0.4)'
-                                    : '0 10px 40px rgba(212, 175, 55, 0.25)',
-                                transform: isHovering ? 'translateY(-4px)' : 'translateY(0)'
-                            }}
-                        >
-                            <span 
-                                className="text-5xl font-bold text-white"
-                                style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
-                            >
-                                U
-                            </span>
-                        </div>
                     </div>
                     
                     <h1 
@@ -210,7 +191,7 @@ export default function Login({ onLogin, embedded = false }) {
                             backgroundClip: 'text'
                         }}
                     >
-                        Override Center
+                        USGRP Developer Panel
                     </h1>
                     <p 
                         className="mt-2 text-sm font-medium tracking-wider uppercase"

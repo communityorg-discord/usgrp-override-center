@@ -21,7 +21,7 @@ export default function AboutModal({ onClose }) {
                         <span className="text-4xl font-bold text-white">U</span>
                     </div>
                     
-                    <h1 className="text-2xl font-bold text-white">USGRP Override Center</h1>
+                    <h1 className="text-2xl font-bold text-white">USGRP Developer Panel</h1>
                     <p className="text-gold font-semibold mt-1">v{version}</p>
                     <p className="text-gray-400 text-sm mt-2">
                         Superuser control panel for USGRP infrastructure

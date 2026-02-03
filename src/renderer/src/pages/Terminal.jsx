@@ -88,7 +88,7 @@ export default function TerminalPage() {
                 term.clear();
                 term.writeln('\x1b[32m┌────────────────────────────────────────────┐\x1b[0m');
                 term.writeln('\x1b[32m│  ✓ Connected to VPS Shell                  │\x1b[0m');
-                term.writeln('\x1b[32m│    USGRP Override Center Terminal          │\x1b[0m');
+                term.writeln('\x1b[32m│    USGRP Developer Panel Terminal          │\x1b[0m');
                 term.writeln('\x1b[32m└────────────────────────────────────────────┘\x1b[0m');
                 term.writeln('');
                 
