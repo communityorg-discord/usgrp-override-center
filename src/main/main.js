@@ -531,131 +531,23 @@ async function checkAndAutoDownload() {
 const terminals = new Map();
 
 function setupTerminalIPC() {
+    // Terminal now uses API instead of local/SSH
+    // These handlers are kept for backward compatibility but terminal uses HTTP API
     ipcMain.handle('terminal:create', async (event) => {
-        // Security check
-        if (!store.get('authToken')) {
-            throw new Error('Unauthorized');
-        }
-
-        const id = Date.now().toString();
-        
-        // Get API base to determine VPS host
-        const apiBase = store.get('apiBase') || 'https://api.usgrp.xyz';
-        
-        // SSH to VPS instead of local shell
-        // Extract host from API URL or use default
-        let sshHost = 'usgrp.xyz';
-        try {
-            const url = new URL(apiBase);
-            sshHost = url.hostname.replace('api.', '');
-        } catch (e) {}
-        
-        const sshUser = 'vpcommunityorganisation';
-        const sshCommand = process.platform === 'win32' ? 'ssh' : '/usr/bin/ssh';
-        const sshArgs = ['-o', 'StrictHostKeyChecking=no', '-t', `${sshUser}@${sshHost}`];
-        
-        if (ptyModule) {
-            try {
-                const ptyProcess = ptyModule.spawn(sshCommand, sshArgs, {
-                    name: 'xterm-256color',
-                    cols: 80,
-                    rows: 24,
-                    cwd: process.env.HOME || process.cwd(),
-                    env: process.env
-                });
-
-                ptyProcess.onData((data) => {
-                    if (!event.sender.isDestroyed()) {
-                        event.sender.send('terminal:data', { id, data });
-                    }
-                });
-                 
-                ptyProcess.onExit(({ exitCode, signal }) => {
-                     if (!event.sender.isDestroyed()) {
-                         event.sender.send('terminal:exit', { id, exitCode, signal });
-                     }
-                     terminals.delete(id);
-                });
-
-                terminals.set(id, { pty: ptyProcess, type: 'pty' });
-                return id;
-            } catch (err) {
-                console.error('Failed to spawn PTY:', err);
-                // Fallthrough to fallback
-            }
-        }
-
-        // Fallback using child_process
-        console.log('Using child_process fallback for terminal (SSH)');
-        const cp = require('child_process').spawn(sshCommand, sshArgs, {
-            cwd: process.env.HOME || process.cwd(),
-            env: process.env,
-            shell: true
-        });
-        
-        cp.stdout.on('data', (data) => {
-            if (!event.sender.isDestroyed()) {
-                event.sender.send('terminal:data', { id, data: data.toString() });
-            }
-        });
-        
-        cp.stderr.on('data', (data) => {
-            if (!event.sender.isDestroyed()) {
-                event.sender.send('terminal:data', { id, data: data.toString() });
-            }
-        });
-        
-        cp.on('exit', (code) => {
-            if (!event.sender.isDestroyed()) {
-                event.sender.send('terminal:exit', { id, exitCode: code });
-            }
-            terminals.delete(id);
-        });
-        
-        // Mock pty interface for fallback
-        terminals.set(id, { 
-            pty: cp, 
-            type: 'cp',
-            write: (data) => cp.stdin.write(data),
-            resize: () => {}, // No-op
-            kill: () => cp.kill()
-        });
-
-        return id;
+        // Return a dummy ID - actual terminal runs through API
+        return Date.now().toString();
     });
-
-    ipcMain.on('terminal:write', (event, { id, data }) => {
-        const terminal = terminals.get(id);
-        if (terminal) {
-            if (terminal.type === 'pty') {
-                terminal.pty.write(data);
-            } else {
-                terminal.write(data);
-            }
-        }
+    
+    ipcMain.handle('terminal:write', async (event, { id, data }) => {
+        // No-op - terminal uses API
     });
-
-    ipcMain.on('terminal:resize', (event, { id, cols, rows }) => {
-        const terminal = terminals.get(id);
-        if (terminal && terminal.type === 'pty') {
-            try {
-                terminal.pty.resize(cols, rows);
-            } catch (err) {
-                console.error('Resize error:', err);
-            }
-        }
+    
+    ipcMain.handle('terminal:resize', async (event, { id, cols, rows }) => {
+        // No-op - terminal uses API
     });
-
-    ipcMain.on('terminal:kill', (event, { id }) => {
-        const terminal = terminals.get(id);
-        if (terminal) {
-            if (terminal.type === 'pty') {
-                terminal.pty.kill();
-            } else {
-                terminal.kill();
-            }
-            terminals.delete(id);
-        }
+    
+    ipcMain.handle('terminal:destroy', async (event, id) => {
+        // No-op - terminal uses API
     });
 }
 

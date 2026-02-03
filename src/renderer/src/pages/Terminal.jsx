@@ -1,275 +1,219 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as Xterm } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
+import React, { useState, useRef, useEffect } from 'react';
+import { useApi } from '../hooks/useApi';
 
 export default function TerminalPage() {
-    const terminalContainerRef = useRef(null);
-    const xtermRef = useRef(null);
-    const fitAddonRef = useRef(null);
-    const terminalIdRef = useRef(null);
-    const [connected, setConnected] = useState(false);
-    const [error, setError] = useState(null);
-    const [terminalType, setTerminalType] = useState('unknown');
+    const { fetchApi } = useApi();
+    const [history, setHistory] = useState([
+        { type: 'system', text: '🦅 USGRP VPS Terminal - Connected to usgrp.xyz' },
+        { type: 'system', text: 'Type commands to execute on the server. Type "help" for available commands.' },
+        { type: 'system', text: '' },
+    ]);
+    const [input, setInput] = useState('');
+    const [cwd, setCwd] = useState('/home/vpcommunityorganisation');
+    const [loading, setLoading] = useState(false);
+    const [commandHistory, setCommandHistory] = useState([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+    const inputRef = useRef(null);
+    const outputRef = useRef(null);
 
     useEffect(() => {
-        // Initialize xterm
-        const term = new Xterm({
-            cursorBlink: true,
-            cursorStyle: 'block',
-            theme: {
-                background: '#0a0a0f',
-                foreground: '#e4e4e7',
-                cursor: '#D4AF37',
-                cursorAccent: '#0a0a0f',
-                selectionBackground: 'rgba(212, 175, 55, 0.3)',
-                black: '#09090b',
-                red: '#ef4444',
-                green: '#22c55e',
-                yellow: '#eab308',
-                blue: '#3b82f6',
-                magenta: '#a855f7',
-                cyan: '#06b6d4',
-                white: '#e4e4e7',
-                brightBlack: '#52525b',
-                brightRed: '#f87171',
-                brightGreen: '#4ade80',
-                brightYellow: '#facc15',
-                brightBlue: '#60a5fa',
-                brightMagenta: '#c084fc',
-                brightCyan: '#22d3ee',
-                brightWhite: '#fafafa',
-            },
-            fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, "Courier New", monospace',
-            fontSize: 14,
-            lineHeight: 1.2,
-            letterSpacing: 0,
-            allowTransparency: true,
-            scrollback: 10000,
-        });
-
-        const fitAddon = new FitAddon();
-        term.loadAddon(fitAddon);
-
-        if (terminalContainerRef.current) {
-            term.open(terminalContainerRef.current);
-            // Wait a tick for DOM to be ready
-            setTimeout(() => {
-                fitAddon.fit();
-            }, 0);
-        }
-
-        xtermRef.current = term;
-        fitAddonRef.current = fitAddon;
-
-        // Create terminal on backend
-        let unsubscribeData;
-        let unsubscribeExit;
-
-        const createTerminal = async () => {
-            try {
-                if (!window.electron || !window.electron.terminal) {
-                    setError('Electron IPC not available. Terminal requires the desktop app.');
-                    term.writeln('\x1b[31m┌────────────────────────────────────────────┐\x1b[0m');
-                    term.writeln('\x1b[31m│  ⚠  Electron IPC not available            │\x1b[0m');
-                    term.writeln('\x1b[31m│     Terminal requires the desktop app     │\x1b[0m');
-                    term.writeln('\x1b[31m└────────────────────────────────────────────┘\x1b[0m');
-                    return;
-                }
-
-                term.writeln('\x1b[90m⏳ Connecting to local shell...\x1b[0m');
-
-                const id = await window.electron.terminal.create();
-                terminalIdRef.current = id;
-                setConnected(true);
-                setError(null);
-                
-                // Clear and show welcome
-                term.clear();
-                term.writeln('\x1b[32m┌────────────────────────────────────────────┐\x1b[0m');
-                term.writeln('\x1b[32m│  ✓ Connected to VPS Shell                  │\x1b[0m');
-                term.writeln('\x1b[32m│    USGRP Developer Panel Terminal          │\x1b[0m');
-                term.writeln('\x1b[32m└────────────────────────────────────────────┘\x1b[0m');
-                term.writeln('');
-                
-                // Determine terminal type
-                setTerminalType('pty');
-                
-                // Initial resize
-                const dims = fitAddon.proposeDimensions();
-                if (dims) {
-                    window.electron.terminal.resize(id, dims.cols, dims.rows);
-                }
-
-                // Handle data from backend
-                unsubscribeData = window.electron.terminal.onData(({ id: msgId, data }) => {
-                    if (msgId === id) {
-                        term.write(data);
-                    }
-                });
-
-                unsubscribeExit = window.electron.terminal.onExit(({ id: msgId, exitCode }) => {
-                    if (msgId === id) {
-                        term.writeln('');
-                        term.writeln(`\x1b[33m┌────────────────────────────────────────────┐\x1b[0m`);
-                        term.writeln(`\x1b[33m│  Shell exited with code ${String(exitCode).padEnd(17)}│\x1b[0m`);
-                        term.writeln(`\x1b[33m│  Press the "Reconnect" button to restart  │\x1b[0m`);
-                        term.writeln(`\x1b[33m└────────────────────────────────────────────┘\x1b[0m`);
-                        setConnected(false);
-                    }
-                });
-
-            } catch (err) {
-                console.error('Terminal creation failed:', err);
-                setError(err.message);
-                term.writeln('');
-                term.writeln(`\x1b[31m┌────────────────────────────────────────────┐\x1b[0m`);
-                term.writeln(`\x1b[31m│  ✗ Failed to create terminal               │\x1b[0m`);
-                term.writeln(`\x1b[31m│    ${err.message.substring(0, 38).padEnd(38)}│\x1b[0m`);
-                term.writeln(`\x1b[31m└────────────────────────────────────────────┘\x1b[0m`);
-            }
-        };
-
-        createTerminal();
-
-        // Handle input
-        term.onData((data) => {
-            if (terminalIdRef.current && window.electron && window.electron.terminal) {
-                window.electron.terminal.write(terminalIdRef.current, data);
-            }
-        });
-
-        // Handle resize
-        const handleResize = () => {
-            if (fitAddonRef.current && terminalIdRef.current && window.electron && window.electron.terminal) {
-                fitAddonRef.current.fit();
-                const dims = fitAddonRef.current.proposeDimensions();
-                if (dims) {
-                    window.electron.terminal.resize(terminalIdRef.current, dims.cols, dims.rows);
-                }
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        
-        // Also handle when the sidebar toggles
-        const resizeObserver = new ResizeObserver(() => {
-            if (fitAddonRef.current) {
-                fitAddonRef.current.fit();
-            }
-        });
-        if (terminalContainerRef.current) {
-            resizeObserver.observe(terminalContainerRef.current);
-        }
-
-        // Cleanup
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            resizeObserver.disconnect();
-            if (terminalIdRef.current && window.electron && window.electron.terminal) {
-                window.electron.terminal.kill(terminalIdRef.current);
-            }
-            if (unsubscribeData) unsubscribeData();
-            if (unsubscribeExit) unsubscribeExit();
-            term.dispose();
-        };
+        // Focus input on mount
+        inputRef.current?.focus();
     }, []);
 
-    const handleReconnect = async () => {
-        if (xtermRef.current && window.electron?.terminal) {
-            xtermRef.current.clear();
-            xtermRef.current.writeln('\x1b[90m⏳ Reconnecting...\x1b[0m');
-            
-            try {
-                const id = await window.electron.terminal.create();
-                terminalIdRef.current = id;
-                setConnected(true);
-                setError(null);
-                
-                xtermRef.current.clear();
-                xtermRef.current.writeln('\x1b[32m✓ Reconnected to shell\x1b[0m\r\n');
-                
-                // Resize
-                const dims = fitAddonRef.current?.proposeDimensions();
-                if (dims) {
-                    window.electron.terminal.resize(id, dims.cols, dims.rows);
-                }
-            } catch (err) {
-                setError(err.message);
-                xtermRef.current.writeln(`\x1b[31m✗ Reconnection failed: ${err.message}\x1b[0m`);
-            }
+    useEffect(() => {
+        // Scroll to bottom on new output
+        if (outputRef.current) {
+            outputRef.current.scrollTop = outputRef.current.scrollHeight;
         }
-    };
+    }, [history]);
 
-    const handleClear = () => {
-        if (xtermRef.current) {
-            xtermRef.current.clear();
+    async function executeCommand(cmd) {
+        if (!cmd.trim()) return;
+
+        // Add command to history
+        setCommandHistory(prev => [...prev, cmd]);
+        setHistoryIndex(-1);
+
+        // Add command to output
+        setHistory(prev => [...prev, { type: 'command', text: `$ ${cmd}`, cwd }]);
+
+        // Handle built-in commands
+        if (cmd === 'clear') {
+            setHistory([{ type: 'system', text: '🦅 USGRP VPS Terminal - Cleared' }]);
+            setInput('');
+            return;
         }
-    };
+
+        if (cmd === 'help') {
+            setHistory(prev => [...prev, 
+                { type: 'output', text: 'Available commands:' },
+                { type: 'output', text: '  clear      - Clear terminal' },
+                { type: 'output', text: '  cd <dir>   - Change directory' },
+                { type: 'output', text: '  pm2 list   - List PM2 processes' },
+                { type: 'output', text: '  pm2 logs   - View PM2 logs' },
+                { type: 'output', text: '  Any other shell command' },
+                { type: 'output', text: '' },
+            ]);
+            setInput('');
+            return;
+        }
+
+        // Handle cd command
+        if (cmd.startsWith('cd ')) {
+            const newDir = cmd.slice(3).trim();
+            let targetDir = newDir;
+            if (newDir === '~') targetDir = '/home/vpcommunityorganisation';
+            else if (newDir === '..') targetDir = cwd.split('/').slice(0, -1).join('/') || '/';
+            else if (!newDir.startsWith('/')) targetDir = `${cwd}/${newDir}`;
+            
+            // Verify directory exists
+            setLoading(true);
+            try {
+                const result = await fetchApi('/override/terminal/exec', {
+                    method: 'POST',
+                    body: JSON.stringify({ command: `cd ${targetDir} && pwd`, cwd })
+                });
+                if (result.success && result.stdout.trim()) {
+                    setCwd(result.stdout.trim());
+                    setHistory(prev => [...prev, { type: 'output', text: `Changed to ${result.stdout.trim()}` }]);
+                } else {
+                    setHistory(prev => [...prev, { type: 'error', text: `cd: ${targetDir}: No such directory` }]);
+                }
+            } catch (e) {
+                setHistory(prev => [...prev, { type: 'error', text: `Error: ${e.message}` }]);
+            }
+            setLoading(false);
+            setInput('');
+            return;
+        }
+
+        // Execute command via API
+        setLoading(true);
+        try {
+            const result = await fetchApi('/override/terminal/exec', {
+                method: 'POST',
+                body: JSON.stringify({ command: cmd, cwd })
+            });
+
+            if (result.stdout) {
+                result.stdout.split('\n').forEach(line => {
+                    setHistory(prev => [...prev, { type: 'output', text: line }]);
+                });
+            }
+            if (result.stderr) {
+                result.stderr.split('\n').forEach(line => {
+                    if (line.trim()) setHistory(prev => [...prev, { type: 'error', text: line }]);
+                });
+            }
+            if (!result.success && !result.stdout && !result.stderr) {
+                setHistory(prev => [...prev, { type: 'error', text: result.error || 'Command failed' }]);
+            }
+        } catch (e) {
+            setHistory(prev => [...prev, { type: 'error', text: `Error: ${e.message}` }]);
+        }
+        setLoading(false);
+        setInput('');
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === 'Enter' && !loading) {
+            executeCommand(input);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (commandHistory.length > 0) {
+                const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
+                setHistoryIndex(newIndex);
+                setInput(commandHistory[commandHistory.length - 1 - newIndex] || '');
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                const newIndex = historyIndex - 1;
+                setHistoryIndex(newIndex);
+                setInput(commandHistory[commandHistory.length - 1 - newIndex] || '');
+            } else {
+                setHistoryIndex(-1);
+                setInput('');
+            }
+        } else if (e.key === 'l' && e.ctrlKey) {
+            e.preventDefault();
+            setHistory([{ type: 'system', text: '🦅 USGRP VPS Terminal - Cleared' }]);
+        }
+    }
+
+    function getLineClass(type) {
+        switch (type) {
+            case 'command': return 'text-gold font-medium';
+            case 'error': return 'text-red-400';
+            case 'system': return 'text-gray-500 italic';
+            default: return 'text-gray-300';
+        }
+    }
 
     return (
-        <div className="h-full flex flex-col bg-[#0a0a0f] text-white">
+        <div className="h-full flex flex-col bg-[#0a0a0f] rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center px-4 py-3 border-b border-white/[0.06] bg-[#0d0d14]">
+            <div className="flex items-center justify-between px-4 py-3 bg-black/30 border-b border-white/5">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <span className="text-lg">💻</span>
-                        <h1 className="text-lg font-bold">VPS Terminal</h1>
+                    <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
-                    <div className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        connected 
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}>
-                        {connected ? '● Connected' : '○ Disconnected'}
-                    </div>
-                    {terminalType !== 'unknown' && connected && (
-                        <div className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                            PTY
-                        </div>
-                    )}
+                    <span className="text-gray-400 text-sm font-mono">vpcommunityorganisation@usgrp.xyz</span>
                 </div>
-                
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-600 font-mono">{cwd}</span>
                     <button
-                        onClick={handleClear}
-                        className="px-3 py-1.5 text-sm text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                        onClick={() => setHistory([{ type: 'system', text: '🦅 USGRP VPS Terminal - Cleared' }])}
+                        className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded hover:bg-white/5"
                     >
                         Clear
                     </button>
-                    {!connected && (
-                        <button
-                            onClick={handleReconnect}
-                            className="px-4 py-1.5 text-sm font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg transition-colors border border-amber-500/30"
-                        >
-                            ↻ Reconnect
-                        </button>
+                </div>
+            </div>
+
+            {/* Terminal Output */}
+            <div 
+                ref={outputRef}
+                className="flex-1 overflow-y-auto p-4 font-mono text-sm"
+                onClick={() => inputRef.current?.focus()}
+            >
+                {history.map((line, i) => (
+                    <div key={i} className={`${getLineClass(line.type)} whitespace-pre-wrap break-all`}>
+                        {line.text}
+                    </div>
+                ))}
+                
+                {/* Input Line */}
+                <div className="flex items-center mt-1">
+                    <span className="text-emerald-400 mr-2">$</span>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        disabled={loading}
+                        className="flex-1 bg-transparent text-white outline-none font-mono"
+                        placeholder={loading ? 'Executing...' : ''}
+                        autoComplete="off"
+                        spellCheck={false}
+                    />
+                    {loading && (
+                        <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin ml-2"></div>
                     )}
                 </div>
             </div>
 
-            {/* Error Banner */}
-            {error && (
-                <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-red-400 text-sm flex items-center gap-2">
-                    <span>⚠</span>
-                    <span>{error}</span>
-                </div>
-            )}
-
-            {/* Terminal Container */}
-            <div 
-                ref={terminalContainerRef} 
-                className="flex-1 overflow-hidden p-2"
-                style={{ 
-                    minHeight: '0',
-                    backgroundColor: '#0a0a0f'
-                }}
-            />
-
             {/* Footer */}
-            <div className="px-4 py-2 border-t border-white/[0.06] bg-[#0d0d14] flex items-center justify-between text-xs text-gray-600">
-                <span>Shell: /bin/bash</span>
-                <span>Tip: Use Ctrl+C to interrupt, Ctrl+L to clear</span>
+            <div className="px-4 py-2 bg-black/30 border-t border-white/5 flex items-center justify-between text-xs text-gray-600">
+                <span>↑↓ Command history • Ctrl+L Clear • Enter Execute</span>
+                <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Connected via API
+                </span>
             </div>
         </div>
     );
