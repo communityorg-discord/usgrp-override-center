@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Gradient presets (Discord-style)
 const GRADIENT_PRESETS = [
@@ -10,14 +10,14 @@ const GRADIENT_PRESETS = [
     { id: 'purple', name: 'Purple Haze', colors: ['#8E2DE2', '#4A00E0'], angle: 135 },
     { id: 'pink', name: 'Cotton Candy', colors: ['#EC4899', '#F472B6'], angle: 135 },
     { id: 'cyber', name: 'Cyberpunk', colors: ['#00f2fe', '#4facfe'], angle: 135 },
-    { id: 'midnight', name: 'Midnight', colors: ['#0f0c29', '#302b63'], angle: 135 },
+    { id: 'midnight', name: 'Midnight', colors: ['#232526', '#414345'], angle: 135 },
     { id: 'custom', name: 'Custom', colors: ['#D4AF37', '#8B5CF6'], angle: 135 },
 ];
 
 const THEME_MODES = [
-    { id: 'dark', name: 'Dark', icon: '🌙' },
-    { id: 'light', name: 'Light', icon: '☀️' },
-    { id: 'oled', name: 'OLED', icon: '🖤' },
+    { id: 'dark', name: 'Dark', icon: '🌙', bg: '#0a0a10' },
+    { id: 'light', name: 'Light', icon: '☀️', bg: '#f5f5f5' },
+    { id: 'oled', name: 'OLED', icon: '🖤', bg: '#000000' },
 ];
 
 export default function Settings() {
@@ -27,16 +27,12 @@ export default function Settings() {
         gradientColor1: '#D4AF37',
         gradientColor2: '#B8860B',
         gradientAngle: 135,
-        accentColor: '#D4AF37',
         saturation: 100,
-        blur: 20,
-        transparency: 0.8,
     });
     
     const [user, setUser] = useState(null);
     const [version, setVersion] = useState('');
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('appearance');
 
     useEffect(() => {
         loadSettings();
@@ -50,7 +46,7 @@ export default function Settings() {
     async function loadSettings() {
         try {
             const keys = ['themeMode', 'gradientPreset', 'gradientColor1', 'gradientColor2', 
-                         'gradientAngle', 'accentColor', 'saturation', 'blur', 'transparency'];
+                         'gradientAngle', 'saturation'];
             const stored = {};
             for (const key of keys) {
                 const value = await window.electron.store.get(key);
@@ -84,7 +80,13 @@ export default function Settings() {
                             const discordRes = await fetch(`${apiBase}/override/discord/user/${data.superuser.discordId}`);
                             if (discordRes.ok) {
                                 const discordData = await discordRes.json();
-                                setUser(prev => ({ ...prev, avatar: discordData.avatar, username: discordData.username }));
+                                if (discordData.user) {
+                                    setUser(prev => ({ 
+                                        ...prev, 
+                                        avatar: discordData.user.avatar, 
+                                        username: discordData.user.username 
+                                    }));
+                                }
                             }
                         } catch (e) {}
                     }
@@ -108,9 +110,10 @@ export default function Settings() {
         root.style.setProperty('--gradient-color-1', settings.gradientColor1);
         root.style.setProperty('--gradient-color-2', settings.gradientColor2);
         
-        // Apply accent
-        root.style.setProperty('--gold', settings.accentColor);
-        root.style.setProperty('--accent', settings.accentColor);
+        // Apply accent (use first gradient color)
+        root.style.setProperty('--gold', settings.gradientColor1);
+        root.style.setProperty('--gold-light', settings.gradientColor2);
+        root.style.setProperty('--accent', settings.gradientColor1);
         
         // Apply saturation
         root.style.setProperty('--saturation', `${settings.saturation}%`);
@@ -126,7 +129,6 @@ export default function Settings() {
         updateSetting('gradientColor1', preset.colors[0]);
         updateSetting('gradientColor2', preset.colors[1]);
         updateSetting('gradientAngle', preset.angle);
-        updateSetting('accentColor', preset.colors[0]);
     }
 
     async function checkUpdates() {
@@ -142,102 +144,81 @@ export default function Settings() {
         return <div className="flex items-center justify-center h-full text-gray-400">Loading...</div>;
     }
 
+    const currentGradient = `linear-gradient(${settings.gradientAngle}deg, ${settings.gradientColor1}, ${settings.gradientColor2})`;
+
     return (
-        <div className="h-full flex bg-surface-primary">
-            {/* Left Panel - Profile Preview */}
-            <div className="w-80 border-r border-white/5 p-6 flex flex-col">
-                {/* Profile Card */}
-                <div 
-                    className="rounded-2xl p-6 mb-6 relative overflow-hidden"
-                    style={{ 
-                        background: `linear-gradient(${settings.gradientAngle}deg, ${settings.gradientColor1}, ${settings.gradientColor2})` 
-                    }}
-                >
-                    <div className="relative z-10">
-                        {/* Avatar */}
-                        <div className="w-20 h-20 rounded-full border-4 border-white/20 mb-4 overflow-hidden bg-black/20">
-                            {user?.avatar ? (
-                                <img 
-                                    src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=128`} 
-                                    alt="Avatar" 
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-3xl">
-                                    {user?.name?.[0] || '?'}
-                                </div>
-                            )}
-                        </div>
+        <div className="h-full overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+                <p className="text-gray-500 mb-8">Customize your Override Center experience</p>
+
+                {/* User Info */}
+                <section className="mb-10 flex items-center gap-6 p-6 bg-white/5 rounded-2xl">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-black/30 border-2 border-white/10">
+                        {user?.avatar ? (
+                            <img 
+                                src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=128`} 
+                                alt="Avatar" 
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl text-white">
+                                {user?.name?.[0] || '?'}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1">
                         <h2 className="text-xl font-bold text-white">{user?.name || 'User'}</h2>
-                        <p className="text-white/60 text-sm">{user?.discordId || 'Not connected'}</p>
+                        <p className="text-gray-500">{user?.discordId || 'Not connected'}</p>
                     </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="space-y-3 flex-1">
-                    <div className="bg-white/5 rounded-xl p-4">
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Version</div>
-                        <div className="text-white font-medium">v{version}</div>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-4">
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Theme</div>
-                        <div className="text-white font-medium capitalize">{settings.themeMode}</div>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="space-y-2">
-                    <button
-                        onClick={checkUpdates}
-                        className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors"
-                    >
-                        Check for Updates
-                    </button>
                     <button
                         onClick={logout}
-                        className="w-full py-3 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition-colors"
+                        className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition-colors"
                     >
                         Sign Out
                     </button>
-                </div>
-            </div>
-
-            {/* Right Panel - Settings */}
-            <div className="flex-1 overflow-y-auto p-8">
-                <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
+                </section>
 
                 {/* Theme Mode */}
                 <section className="mb-10">
                     <h2 className="text-lg font-semibold text-white mb-4">Theme Mode</h2>
-                    <div className="flex gap-3">
+                    <div className="grid grid-cols-3 gap-4">
                         {THEME_MODES.map(mode => (
                             <button
                                 key={mode.id}
                                 onClick={() => updateSetting('themeMode', mode.id)}
-                                className={`flex-1 py-4 px-6 rounded-xl border-2 transition-all ${
+                                className={`p-5 rounded-xl border-2 transition-all ${
                                     settings.themeMode === mode.id
-                                        ? 'border-gold bg-gold/10'
-                                        : 'border-white/10 hover:border-white/20 bg-white/5'
+                                        ? 'border-white/50 ring-2 ring-offset-2 ring-offset-black/50'
+                                        : 'border-white/10 hover:border-white/20'
                                 }`}
+                                style={{ 
+                                    background: mode.bg,
+                                    borderColor: settings.themeMode === mode.id ? settings.gradientColor1 : undefined,
+                                    ringColor: settings.gradientColor1
+                                }}
                             >
-                                <div className="text-2xl mb-2">{mode.icon}</div>
-                                <div className="text-white font-medium">{mode.name}</div>
+                                <div className="text-3xl mb-2">{mode.icon}</div>
+                                <div className={`font-medium ${mode.id === 'light' ? 'text-black' : 'text-white'}`}>{mode.name}</div>
                             </button>
                         ))}
                     </div>
                 </section>
 
-                {/* Gradient Colors */}
+                {/* Theme Colors (Gradient) */}
                 <section className="mb-10">
-                    <h2 className="text-lg font-semibold text-white mb-4">Profile Gradient</h2>
+                    <h2 className="text-lg font-semibold text-white mb-2">Theme Colors</h2>
+                    <p className="text-gray-500 text-sm mb-4">Choose a gradient for headings, buttons, and accents throughout the app</p>
+                    
+                    {/* Preset Grid */}
                     <div className="grid grid-cols-5 gap-3 mb-6">
                         {GRADIENT_PRESETS.map(preset => (
                             <button
                                 key={preset.id}
                                 onClick={() => selectGradientPreset(preset)}
-                                className={`aspect-square rounded-xl border-2 transition-all relative overflow-hidden ${
+                                className={`aspect-video rounded-xl border-2 transition-all relative overflow-hidden ${
                                     settings.gradientPreset === preset.id
-                                        ? 'border-white ring-2 ring-gold'
+                                        ? 'border-white ring-2 ring-white/30'
                                         : 'border-transparent hover:border-white/30'
                                 }`}
                                 style={{
@@ -245,9 +226,12 @@ export default function Settings() {
                                 }}
                                 title={preset.name}
                             >
+                                <div className="absolute inset-0 flex items-end p-2">
+                                    <span className="text-xs text-white font-medium drop-shadow-lg">{preset.name}</span>
+                                </div>
                                 {settings.gradientPreset === preset.id && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="absolute top-2 right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                         </svg>
                                     </div>
@@ -256,12 +240,12 @@ export default function Settings() {
                         ))}
                     </div>
 
-                    {/* Custom Colors */}
+                    {/* Custom Color Pickers */}
                     <div className="bg-white/5 rounded-xl p-6">
                         <h3 className="text-sm font-medium text-gray-400 mb-4">Custom Colors</h3>
-                        <div className="flex gap-6">
+                        <div className="flex gap-6 items-start">
                             <div className="flex-1">
-                                <label className="text-xs text-gray-500 block mb-2">Color 1</label>
+                                <label className="text-xs text-gray-500 block mb-2">Primary Color</label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="color"
@@ -269,20 +253,22 @@ export default function Settings() {
                                         onChange={(e) => {
                                             updateSetting('gradientColor1', e.target.value);
                                             updateSetting('gradientPreset', 'custom');
-                                            updateSetting('accentColor', e.target.value);
                                         }}
-                                        className="w-12 h-12 rounded-lg cursor-pointer border-0"
+                                        className="w-14 h-14 rounded-xl cursor-pointer border-2 border-white/10"
                                     />
                                     <input
                                         type="text"
                                         value={settings.gradientColor1}
-                                        onChange={(e) => updateSetting('gradientColor1', e.target.value)}
+                                        onChange={(e) => {
+                                            updateSetting('gradientColor1', e.target.value);
+                                            updateSetting('gradientPreset', 'custom');
+                                        }}
                                         className="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm"
                                     />
                                 </div>
                             </div>
                             <div className="flex-1">
-                                <label className="text-xs text-gray-500 block mb-2">Color 2</label>
+                                <label className="text-xs text-gray-500 block mb-2">Secondary Color</label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="color"
@@ -291,46 +277,76 @@ export default function Settings() {
                                             updateSetting('gradientColor2', e.target.value);
                                             updateSetting('gradientPreset', 'custom');
                                         }}
-                                        className="w-12 h-12 rounded-lg cursor-pointer border-0"
+                                        className="w-14 h-14 rounded-xl cursor-pointer border-2 border-white/10"
                                     />
                                     <input
                                         type="text"
                                         value={settings.gradientColor2}
-                                        onChange={(e) => updateSetting('gradientColor2', e.target.value)}
+                                        onChange={(e) => {
+                                            updateSetting('gradientColor2', e.target.value);
+                                            updateSetting('gradientPreset', 'custom');
+                                        }}
                                         className="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm"
                                     />
                                 </div>
                             </div>
-                            <div className="w-32">
-                                <label className="text-xs text-gray-500 block mb-2">Angle</label>
+                            <div className="w-40">
+                                <label className="text-xs text-gray-500 block mb-2">Angle: {settings.gradientAngle}°</label>
                                 <input
                                     type="range"
                                     min="0"
                                     max="360"
                                     value={settings.gradientAngle}
-                                    onChange={(e) => updateSetting('gradientAngle', parseInt(e.target.value))}
-                                    className="w-full accent-gold"
+                                    onChange={(e) => {
+                                        updateSetting('gradientAngle', parseInt(e.target.value));
+                                        updateSetting('gradientPreset', 'custom');
+                                    }}
+                                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                                    style={{ background: currentGradient }}
                                 />
-                                <div className="text-center text-xs text-gray-500 mt-1">{settings.gradientAngle}°</div>
                             </div>
                         </div>
                         
-                        {/* Preview */}
-                        <div className="mt-4">
-                            <label className="text-xs text-gray-500 block mb-2">Preview</label>
-                            <div 
-                                className="h-16 rounded-xl"
-                                style={{
-                                    background: `linear-gradient(${settings.gradientAngle}deg, ${settings.gradientColor1}, ${settings.gradientColor2})`
-                                }}
-                            />
+                        {/* Theme Preview */}
+                        <div className="mt-6">
+                            <label className="text-xs text-gray-500 block mb-3">Preview</label>
+                            <div className="bg-black/20 rounded-xl p-4 space-y-3">
+                                <h3 
+                                    className="text-xl font-bold"
+                                    style={{ 
+                                        background: currentGradient,
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent'
+                                    }}
+                                >
+                                    Dashboard Heading
+                                </h3>
+                                <div className="flex gap-3">
+                                    <button 
+                                        className="px-4 py-2 rounded-lg text-black font-semibold text-sm"
+                                        style={{ background: currentGradient }}
+                                    >
+                                        Primary Button
+                                    </button>
+                                    <button className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm">
+                                        Secondary
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div 
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ background: settings.gradientColor1 }}
+                                    ></div>
+                                    <span style={{ color: settings.gradientColor1 }}>Accent text and indicators</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Saturation */}
                 <section className="mb-10">
-                    <h2 className="text-lg font-semibold text-white mb-4">Saturation</h2>
+                    <h2 className="text-lg font-semibold text-white mb-4">Color Saturation</h2>
                     <div className="bg-white/5 rounded-xl p-6">
                         <input
                             type="range"
@@ -338,32 +354,40 @@ export default function Settings() {
                             max="200"
                             value={settings.saturation}
                             onChange={(e) => updateSetting('saturation', parseInt(e.target.value))}
-                            className="w-full accent-gold"
+                            className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-700"
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-2">
                             <span>Grayscale</span>
-                            <span>{settings.saturation}%</span>
+                            <span className="font-medium text-white">{settings.saturation}%</span>
                             <span>Vivid</span>
                         </div>
                     </div>
                 </section>
 
-                {/* About */}
+                {/* About & Updates */}
                 <section className="mb-10">
                     <h2 className="text-lg font-semibold text-white mb-4">About</h2>
                     <div className="bg-white/5 rounded-xl p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-gold to-amber-600 flex items-center justify-center">
-                                <span className="text-3xl">🦅</span>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div 
+                                    className="w-14 h-14 rounded-xl flex items-center justify-center"
+                                    style={{ background: currentGradient }}
+                                >
+                                    <span className="text-2xl">🦅</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">USGRP Developer Panel</h3>
+                                    <p className="text-gray-500">Version {version}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white">USGRP Developer Panel</h3>
-                                <p className="text-gray-400">Version {version}</p>
-                            </div>
+                            <button
+                                onClick={checkUpdates}
+                                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
+                            >
+                                Check for Updates
+                            </button>
                         </div>
-                        <p className="text-gray-500 text-sm">
-                            Server management and override tools for USGRP administrators.
-                        </p>
                     </div>
                 </section>
             </div>

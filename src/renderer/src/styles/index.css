@@ -201,19 +201,23 @@ body {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .text-gold-gradient {
-    background: linear-gradient(135deg, 
-        var(--gold) 0%, 
-        var(--gold-light) 40%,
-        var(--gold) 80%,
-        var(--gold-light) 100%
-    );
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-.text-gold { color: var(--gold); }
-.text-gold-light { color: var(--gold-light); }
+.text-gold { color: var(--gradient-color-1); }
+.text-gold-light { color: var(--gradient-color-2); }
+
+/* Gradient backgrounds for buttons, cards, accents */
+.bg-gradient-accent {
+    background: var(--gradient-primary);
+}
+
+.border-gradient {
+    border-image: var(--gradient-primary) 1;
+}
 
 .heading-xl {
     @apply text-3xl font-bold tracking-tight;
@@ -267,21 +271,16 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, 
-        var(--gold) 0%, 
-        var(--gold-dark) 100%
-    );
+    background: var(--gradient-primary);
     color: #111;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+    box-shadow: 0 2px 8px rgba(var(--gradient-color-1), 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, 
-        var(--gold-light) 0%, 
-        var(--gold) 100%
-    );
-    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+    background: var(--gradient-primary);
+    filter: brightness(1.1);
+    box-shadow: 0 4px 16px rgba(var(--gradient-color-1), 0.35);
 }
 
 .btn-secondary {
