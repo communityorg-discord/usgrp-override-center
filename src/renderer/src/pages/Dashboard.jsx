@@ -386,13 +386,38 @@ export default function Dashboard() {
                     handleProcessAction={handleProcessAction}
                 />
             ) : (
-                <CommunityDashboard 
-                    data={communityData}
-                    onRefresh={loadCommunityData}
-                />
+                <ErrorBoundary fallback={<div className="text-center p-8 text-red-400">Community Dashboard failed to load. <button onClick={loadCommunityData} className="underline">Retry</button></div>}>
+                    <CommunityDashboard 
+                        data={communityData}
+                        onRefresh={loadCommunityData}
+                    />
+                </ErrorBoundary>
             )}
         </div>
     );
+}
+
+// Simple Error Boundary Component
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error('Community Dashboard Error:', error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback;
+        }
+        return this.props.children;
+    }
 }
 
 // Tab Button Component
@@ -868,8 +893,16 @@ function SystemsDashboard({
 }
 
 // Community Dashboard Component
-function CommunityDashboard({ data, onRefresh }) {
-    const { economy, moderation, discord, activity, loading, error } = data;
+function CommunityDashboard({ data = {}, onRefresh }) {
+    // Handle undefined data gracefully
+    const { 
+        economy = null, 
+        moderation = null, 
+        discord = null, 
+        activity = null, 
+        loading = false, 
+        error = null 
+    } = data || {};
     
     // Generate mock data if API returns nothing
     const mockEconomy = economy || {
