@@ -248,22 +248,44 @@ function registerShortcuts() {
 
 function setupAutoUpdater() {
     autoUpdater.autoDownload = false;
+    autoUpdater.logger = require('electron-log');
+    autoUpdater.logger.transports.file.level = 'info';
+    
+    autoUpdater.on('checking-for-update', () => {
+        console.log('[AutoUpdater] Checking for update...');
+        sendToRenderer('update-checking', {});
+    });
     
     autoUpdater.on('update-available', (info) => {
+        console.log('[AutoUpdater] Update available:', info.version);
         sendToRenderer('update-available', info);
     });
     
+    autoUpdater.on('update-not-available', (info) => {
+        console.log('[AutoUpdater] No update available. Current version is up to date.');
+        sendToRenderer('update-not-available', info);
+    });
+    
     autoUpdater.on('update-downloaded', (info) => {
+        console.log('[AutoUpdater] Update downloaded:', info.version);
         sendToRenderer('update-downloaded', info);
     });
     
     autoUpdater.on('error', (error) => {
+        console.error('[AutoUpdater] Error:', error.message);
         sendToRenderer('update-error', error.message);
+    });
+    
+    autoUpdater.on('download-progress', (progress) => {
+        console.log(`[AutoUpdater] Download progress: ${Math.round(progress.percent)}%`);
+        sendToRenderer('update-progress', progress);
     });
     
     // Check for updates on startup (in production)
     if (!isDev) {
-        autoUpdater.checkForUpdatesAndNotify();
+        setTimeout(() => {
+            autoUpdater.checkForUpdatesAndNotify();
+        }, 3000); // Delay 3s to let app finish loading
     }
 }
 

@@ -93,8 +93,12 @@ export default function App() {
     function setupEventListeners() {
         window.electron.on('navigate', (path) => navigate(path));
         window.electron.on('quick-action', (action) => console.log('Quick action:', action));
+        window.electron.on('update-checking', () => setUpdateInfo({ type: 'checking' }));
         window.electron.on('update-available', (info) => setUpdateInfo({ type: 'available', ...info }));
+        window.electron.on('update-not-available', () => setUpdateInfo({ type: 'up-to-date' }));
         window.electron.on('update-downloaded', (info) => setUpdateInfo({ type: 'downloaded', ...info }));
+        window.electron.on('update-error', (message) => setUpdateInfo({ type: 'error', message }));
+        window.electron.on('update-progress', (progress) => setUpdateInfo(prev => ({ ...prev, progress })));
         window.electron.on('auth-success', (token) => {
             window.electron.api.setToken(token);
             setIsAuthenticated(true);
