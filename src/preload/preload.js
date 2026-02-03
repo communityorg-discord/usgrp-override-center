@@ -49,7 +49,7 @@ contextBridge.exposeInMainWorld('electron', {
     // Auto updater
     updater: {
         check: () => ipcRenderer.invoke('updater:check'),
-        download: (url) => ipcRenderer.invoke('updater:download', url),
+        download: () => ipcRenderer.invoke('updater:download'),
         install: () => ipcRenderer.invoke('updater:install')
     },
     

@@ -43,8 +43,7 @@ export default function UpdateNotification({ info, onDismiss }) {
     }
 
     async function handleDownload() {
-        // Pass the download URL to open in browser
-        await window.electron.updater.download(info.downloadUrl);
+        await window.electron.updater.download();
     }
 
     // Checking state

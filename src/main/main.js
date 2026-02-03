@@ -574,7 +574,7 @@ function setupIPC() {
         sendToRenderer('update-checking', {});
         
         try {
-            // Use GitHub API directly - way more reliable than electron-updater
+            // Use GitHub API to check for updates (reliable)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000);
             
@@ -601,13 +601,13 @@ function setupIPC() {
             const isNewer = compareVersions(latestVersion, currentVersion) > 0;
             
             if (isNewer) {
-                // Find the exe asset
-                const exeAsset = release.assets.find(a => a.name.endsWith('.exe'));
                 sendToRenderer('update-available', {
                     version: latestVersion,
-                    releaseNotes: release.body,
-                    downloadUrl: exeAsset ? exeAsset.browser_download_url : release.html_url
+                    releaseNotes: release.body
                 });
+                
+                // Store for download
+                global.pendingUpdateVersion = latestVersion;
             } else {
                 sendToRenderer('update-not-available', {});
             }
@@ -637,18 +637,21 @@ function setupIPC() {
         return 0;
     }
     
-    // Download just opens the URL in browser - user downloads manually
-    ipcMain.handle('updater:download', async (event, url) => {
-        if (url) {
-            await shell.openExternal(url);
-        } else {
-            await shell.openExternal('https://github.com/communityorg-discord/usgrp-override-center/releases/latest');
+    // Download uses electron-updater (the download part works, just not the check)
+    ipcMain.handle('updater:download', async () => {
+        try {
+            sendToRenderer('update-progress', { percent: 0 });
+            await autoUpdater.downloadUpdate();
+            // download-progress and update-downloaded events will fire from setupAutoUpdater
+        } catch (error) {
+            console.error('[UpdateChecker] Download failed:', error);
+            sendToRenderer('update-error', 'Download failed: ' + error.message);
         }
     });
     
     ipcMain.handle('updater:install', () => {
-        // Not used with manual download approach
-        app.quit();
+        app.isQuitting = true;
+        autoUpdater.quitAndInstall(false, true);
     });
     
     // App info

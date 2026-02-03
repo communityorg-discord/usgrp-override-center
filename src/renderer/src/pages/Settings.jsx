@@ -154,6 +154,10 @@ export default function Settings() {
                 
                 <div className="space-y-2">
                     <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Command Palette</span>
+                        <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 font-mono">Ctrl+K</kbd>
+                    </div>
+                    <div className="flex justify-between text-sm">
                         <span className="text-gray-300">Show/Focus Window</span>
                         <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 font-mono">Ctrl+Shift+U</kbd>
                     </div>
@@ -162,8 +166,16 @@ export default function Settings() {
                         <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 font-mono">Ctrl+Shift+D</kbd>
                     </div>
                     <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Terminal</span>
+                        <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 font-mono">Ctrl+Shift+T</kbd>
+                    </div>
+                    <div className="flex justify-between text-sm">
                         <span className="text-gray-300">Refresh Data</span>
                         <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 font-mono">F5</kbd>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Settings</span>
+                        <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 font-mono">Ctrl+,</kbd>
                     </div>
                 </div>
             </div>
