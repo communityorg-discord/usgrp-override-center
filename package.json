@@ -49,7 +49,8 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "artifactName": "USGRP.Override.Center.Setup.${version}.${ext}"
+      "artifactName": "USGRP.Override.Center.Setup.${version}.${ext}",
+      "runAfterFinish": true
     },
     "compression": "normal",
     "publish": {
