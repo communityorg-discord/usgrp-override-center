@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 
 export default function DependencyGraph() {
+    const { fetchApi } = useApi();
     const [graphData, setGraphData] = useState({ nodes: [], links: [] });
     const [loading, setLoading] = useState(true);
     const [selectedNode, setSelectedNode] = useState(null);
@@ -12,10 +13,67 @@ export default function DependencyGraph() {
 
     async function loadGraph() {
         try {
-            const data = await window.electron.ipcRenderer.invoke('services:getDependencies');
-            setGraphData(data);
+            // Use API to get PM2 list from server
+            const data = await fetchApi('/override/pm2/list');
+            
+            if (data?.processes && data.processes.length > 0) {
+                const nodes = [];
+                const links = [];
+                
+                // Add process nodes
+                data.processes.forEach(proc => {
+                    nodes.push({
+                        id: proc.name,
+                        name: proc.name,
+                        status: proc.status,
+                        type: 'service',
+                        color: proc.status === 'online' ? '#10b981' : '#ef4444',
+                        memory: proc.memoryMB || 0,
+                        cpu: proc.cpu || 0
+                    });
+                });
+                
+                // Add infrastructure nodes
+                nodes.push({ id: 'postgres', name: 'PostgreSQL', type: 'db', color: '#3b82f6' });
+                nodes.push({ id: 'sqlite', name: 'SQLite', type: 'db', color: '#60a5fa' });
+                
+                // Add links based on known dependencies
+                const dbServices = ['api-gateway', 'auth-service', 'co-economy-bot', 'co-gov-utils'];
+                dbServices.forEach(svc => {
+                    if (nodes.find(n => n.id === svc)) {
+                        links.push({ source: svc, target: 'sqlite' });
+                    }
+                });
+                
+                // Calculate positions (circular layout)
+                const centerX = 400;
+                const centerY = 300;
+                const radius = 200;
+                
+                nodes.forEach((node, i) => {
+                    if (node.type === 'db') {
+                        node.x = centerX + (node.id === 'postgres' ? -50 : 50);
+                        node.y = centerY;
+                        return;
+                    }
+                    const angle = (i / nodes.filter(n => n.type !== 'db').length) * 2 * Math.PI - Math.PI / 2;
+                    node.x = centerX + radius * Math.cos(angle);
+                    node.y = centerY + radius * Math.sin(angle);
+                });
+                
+                setGraphData({ nodes, links });
+            } else {
+                setGraphData({ 
+                    nodes: [{ id: 'no-services', name: 'No services detected', type: 'info', color: '#6b7280', x: 400, y: 300 }], 
+                    links: [] 
+                });
+            }
         } catch (error) {
             console.error('Failed to load dependency graph:', error);
+            setGraphData({ 
+                nodes: [{ id: 'error', name: 'Failed to load', type: 'error', color: '#ef4444', x: 400, y: 300 }], 
+                links: [] 
+            });
         } finally {
             setLoading(false);
         }
