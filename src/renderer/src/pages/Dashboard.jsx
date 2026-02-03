@@ -953,6 +953,20 @@ function CommunityDashboard({ data, onRefresh }) {
         );
     }
     
+    // Safety check for data
+    if (!mockEconomy || !mockModeration || !mockDiscord || !mockActivity) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <p className="text-white text-lg mb-2">Unable to load community data</p>
+                    <button onClick={onRefresh} className="btn btn-primary">
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    
     return (
         <div className="space-y-4 animate-fade-in">
             {error && (
