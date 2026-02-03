@@ -14,8 +14,6 @@ export default function SetupWizard({ onComplete }) {
 
     const handleThemeSelect = (theme) => {
         setConfig({ ...config, theme });
-        // Apply theme immediately if needed via context or window
-        // window.electron.api.setTheme(theme);
     };
 
     const finishSetup = async () => {
@@ -25,27 +23,97 @@ export default function SetupWizard({ onComplete }) {
     };
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden">
-            {/* Background Accent */}
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gold rounded-full blur-[120px]"></div>
+        <div 
+            className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden"
+            style={{
+                background: 'linear-gradient(180deg, #050508 0%, #0a0a10 100%)'
+            }}
+        >
+            {/* Background effects */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {/* Radial glow */}
+                <div 
+                    className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full"
+                    style={{
+                        background: 'radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, transparent 60%)'
+                    }}
+                />
+                
+                {/* Grid pattern */}
+                <div 
+                    className="absolute inset-0 opacity-[0.015]"
+                    style={{
+                        backgroundImage: `linear-gradient(rgba(212, 175, 55, 0.5) 1px, transparent 1px),
+                                          linear-gradient(90deg, rgba(212, 175, 55, 0.5) 1px, transparent 1px)`,
+                        backgroundSize: '80px 80px'
+                    }}
+                />
             </div>
 
-            <div className="bg-surface-secondary/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8 w-full max-w-2xl z-10">
+            {/* Main container */}
+            <div 
+                className="relative z-10 w-full max-w-2xl rounded-2xl p-8"
+                style={{
+                    background: 'linear-gradient(145deg, rgba(18, 18, 32, 0.85) 0%, rgba(10, 10, 18, 0.95) 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    boxShadow: '0 30px 100px rgba(0, 0, 0, 0.6)'
+                }}
+            >
+                {/* Top highlight */}
+                <div 
+                    className="absolute top-0 left-0 right-0 h-px rounded-t-2xl"
+                    style={{
+                        background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent)'
+                    }}
+                />
                 
                 {/* Steps Indicator */}
-                <div className="flex justify-between mb-8 relative">
-                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/10 -z-10"></div>
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className={`flex flex-col items-center gap-2 ${step >= i ? 'text-gold' : 'text-gray-500'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                                step >= i ? 'bg-gold text-black scale-110' : 'bg-surface-tertiary border border-white/10'
-                            }`}>
-                                {i}
+                <div className="flex justify-between mb-10 relative px-8">
+                    {/* Progress line */}
+                    <div 
+                        className="absolute top-4 left-12 right-12 h-0.5"
+                        style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                    />
+                    <div 
+                        className="absolute top-4 left-12 h-0.5 transition-all duration-500"
+                        style={{ 
+                            background: 'linear-gradient(90deg, #D4AF37, rgba(212, 175, 55, 0.5))',
+                            width: step === 1 ? '0%' : step === 2 ? 'calc(50% - 24px)' : 'calc(100% - 48px)'
+                        }}
+                    />
+                    
+                    {[
+                        { num: 1, label: 'Authenticate' },
+                        { num: 2, label: 'Customize' },
+                        { num: 3, label: 'Launch' }
+                    ].map(({ num, label }) => (
+                        <div key={num} className="flex flex-col items-center gap-3 relative">
+                            <div 
+                                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300"
+                                style={{
+                                    background: step >= num 
+                                        ? 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)' 
+                                        : 'rgba(255, 255, 255, 0.04)',
+                                    color: step >= num ? '#111' : 'rgba(255, 255, 255, 0.3)',
+                                    border: step >= num ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+                                    boxShadow: step >= num ? '0 4px 15px rgba(212, 175, 55, 0.3)' : 'none',
+                                    transform: step === num ? 'scale(1.1)' : 'scale(1)'
+                                }}
+                            >
+                                {step > num ? (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                ) : num}
                             </div>
-                            <span className="text-xs font-medium uppercase tracking-wider">{
-                                i === 1 ? 'Login' : i === 2 ? 'Theme' : 'Complete'
-                            }</span>
+                            <span 
+                                className="text-xs font-semibold uppercase tracking-wider"
+                                style={{ 
+                                    color: step >= num ? '#D4AF37' : 'rgba(255, 255, 255, 0.3)'
+                                }}
+                            >
+                                {label}
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -54,10 +122,27 @@ export default function SetupWizard({ onComplete }) {
                 {step === 1 && (
                     <div className="animate-fade-in">
                         <div className="text-center mb-8">
-                            <h2 className="text-3xl font-bold mb-2">Welcome, Superuser.</h2>
-                            <p className="text-gray-400">Authenticate to access the USGRP Override Center.</p>
+                            <h2 
+                                className="text-3xl font-bold mb-3"
+                                style={{
+                                    background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent'
+                                }}
+                            >
+                                Welcome, Superuser
+                            </h2>
+                            <p style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                Authenticate to access the USGRP Override Center
+                            </p>
                         </div>
-                        <div className="bg-surface-tertiary rounded-xl p-6 border border-white/5">
+                        <div 
+                            className="rounded-xl p-6"
+                            style={{
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                border: '1px solid rgba(255, 255, 255, 0.04)'
+                            }}
+                        >
                             <Login onLogin={handleLoginSuccess} embedded={true} />
                         </div>
                     </div>
@@ -66,51 +151,79 @@ export default function SetupWizard({ onComplete }) {
                 {/* Step 2: Theme */}
                 {step === 2 && (
                     <div className="animate-fade-in text-center">
-                        <h2 className="text-2xl font-bold mb-4">Choose Interface Theme</h2>
-                        <p className="text-gray-400 mb-8">Select your preferred visual style.</p>
+                        <h2 
+                            className="text-2xl font-bold mb-3"
+                            style={{
+                                background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent'
+                            }}
+                        >
+                            Choose Your Theme
+                        </h2>
+                        <p className="mb-8" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                            Select your preferred visual style
+                        </p>
                         
-                        <div className="grid grid-cols-3 gap-6">
-                            <button 
+                        <div className="grid grid-cols-3 gap-5">
+                            <ThemeOption 
+                                name="Dark"
+                                subtitle="Default"
+                                isSelected={config.theme === 'dark'}
                                 onClick={() => handleThemeSelect('dark')}
-                                className={`p-4 rounded-xl border transition-all duration-300 ${
-                                    config.theme === 'dark' ? 'border-gold bg-gold/10' : 'border-white/10 hover:border-white/30 bg-black/40'
-                                }`}
-                            >
-                                <div className="h-24 bg-gray-900 rounded mb-3 border border-gray-700 relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-2 bg-gray-800"></div>
-                                    <div className="absolute left-0 top-2 w-4 h-full bg-gray-800 border-r border-gray-700"></div>
-                                </div>
-                                <div className="font-medium">Dark (Default)</div>
-                            </button>
-
-                            <button 
-                                onClick={() => handleThemeSelect('light')}
-                                className={`p-4 rounded-xl border transition-all duration-300 ${
-                                    config.theme === 'light' ? 'border-gold bg-gold/10' : 'border-white/10 hover:border-white/30 bg-gray-200'
-                                }`}
-                            >
-                                <div className="h-24 bg-white rounded mb-3 border border-gray-300 relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-2 bg-gray-100"></div>
-                                    <div className="absolute left-0 top-2 w-4 h-full bg-gray-100 border-r border-gray-200"></div>
-                                </div>
-                                <div className={`font-medium ${config.theme === 'light' ? 'text-white' : 'text-black'}`}>Light</div>
-                            </button>
-
-                            <button 
+                                colors={{
+                                    bg: '#0a0a0f',
+                                    header: '#141420',
+                                    sidebar: '#111118',
+                                    accent: '#D4AF37'
+                                }}
+                            />
+                            
+                            <ThemeOption 
+                                name="Midnight"
+                                subtitle="Deep Blue"
+                                isSelected={config.theme === 'midnight'}
                                 onClick={() => handleThemeSelect('midnight')}
-                                className={`p-4 rounded-xl border transition-all duration-300 ${
-                                    config.theme === 'midnight' ? 'border-gold bg-gold/10' : 'border-white/10 hover:border-white/30 bg-[#0f172a]'
-                                }`}
-                            >
-                                <div className="h-24 bg-[#0f172a] rounded mb-3 border border-slate-700 relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
-                                    <div className="absolute left-0 top-2 w-4 h-full bg-slate-800 border-r border-slate-700"></div>
-                                </div>
-                                <div className="font-medium text-slate-200">Midnight</div>
-                            </button>
+                                colors={{
+                                    bg: '#0f172a',
+                                    header: '#1e293b',
+                                    sidebar: '#1a2540',
+                                    accent: '#3b82f6'
+                                }}
+                            />
+                            
+                            <ThemeOption 
+                                name="Light"
+                                subtitle="Coming Soon"
+                                isSelected={false}
+                                onClick={() => {}}
+                                disabled
+                                colors={{
+                                    bg: '#f8fafc',
+                                    header: '#e2e8f0',
+                                    sidebar: '#f1f5f9',
+                                    accent: '#D4AF37'
+                                }}
+                            />
                         </div>
 
-                        <button onClick={nextStep} className="mt-8 px-8 py-3 bg-gold text-black font-bold rounded-lg hover:bg-yellow-400 transition-colors">
+                        <button 
+                            onClick={nextStep} 
+                            className="mt-10 px-10 py-3.5 rounded-xl font-semibold transition-all duration-200"
+                            style={{
+                                background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)',
+                                color: '#111',
+                                boxShadow: '0 4px 20px rgba(212, 175, 55, 0.3)'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.boxShadow = '0 8px 30px rgba(212, 175, 55, 0.45)';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.boxShadow = '0 4px 20px rgba(212, 175, 55, 0.3)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
                             Continue
                         </button>
                     </div>
@@ -118,41 +231,200 @@ export default function SetupWizard({ onComplete }) {
 
                 {/* Step 3: Finish */}
                 {step === 3 && (
-                    <div className="animate-fade-in text-center py-8">
-                        <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <div className="animate-fade-in text-center py-6">
+                        {/* Success icon */}
+                        <div 
+                            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)',
+                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                            }}
+                        >
+                            <svg 
+                                className="w-10 h-10" 
+                                style={{ color: '#34d399' }}
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
-                        <h2 className="text-3xl font-bold mb-4">Setup Complete</h2>
-                        <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                            The USGRP Override Center is configured and ready. You have full superuser privileges.
+                        
+                        <h2 
+                            className="text-3xl font-bold mb-3"
+                            style={{
+                                background: 'linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent'
+                            }}
+                        >
+                            Setup Complete
+                        </h2>
+                        <p className="mb-8 max-w-md mx-auto" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                            Override Center is configured and ready. You have full superuser privileges.
                         </p>
                         
-                        <div className="bg-surface-tertiary p-4 rounded-lg mb-8 text-left max-w-md mx-auto border border-white/5">
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-gold">✓</span>
-                                <span>Authenticated as Superuser</span>
+                        {/* Summary */}
+                        <div 
+                            className="rounded-xl p-5 mb-8 max-w-sm mx-auto text-left"
+                            style={{
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                border: '1px solid rgba(255, 255, 255, 0.04)'
+                            }}
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <div 
+                                    className="w-5 h-5 rounded-full flex items-center justify-center"
+                                    style={{ background: 'rgba(16, 185, 129, 0.15)' }}
+                                >
+                                    <svg className="w-3 h-3" style={{ color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <span className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                                    Authenticated as Superuser
+                                </span>
                             </div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-gold">✓</span>
-                                <span>Theme applied: {config.theme}</span>
+                            <div className="flex items-center gap-3 mb-3">
+                                <div 
+                                    className="w-5 h-5 rounded-full flex items-center justify-center"
+                                    style={{ background: 'rgba(16, 185, 129, 0.15)' }}
+                                >
+                                    <svg className="w-3 h-3" style={{ color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <span className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                                    Theme: <span className="capitalize">{config.theme}</span>
+                                </span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-gold">✓</span>
-                                <span>Secure connection established</span>
+                                <div 
+                                    className="w-5 h-5 rounded-full flex items-center justify-center"
+                                    style={{ background: 'rgba(16, 185, 129, 0.15)' }}
+                                >
+                                    <svg className="w-3 h-3" style={{ color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <span className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                                    Secure connection established
+                                </span>
                             </div>
                         </div>
 
                         <button 
                             onClick={finishSetup}
-                            className="px-10 py-4 bg-gradient-to-r from-gold to-yellow-500 text-black font-bold text-lg rounded-xl hover:scale-105 transition-transform shadow-lg shadow-gold/20"
+                            className="px-12 py-4 rounded-xl font-bold text-lg transition-all duration-200"
+                            style={{
+                                background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)',
+                                color: '#111',
+                                boxShadow: '0 6px 30px rgba(212, 175, 55, 0.35)'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.boxShadow = '0 10px 40px rgba(212, 175, 55, 0.5)';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.boxShadow = '0 6px 30px rgba(212, 175, 55, 0.35)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
                         >
-                            Launch Dashboard
+                            Launch Dashboard →
                         </button>
                     </div>
                 )}
             </div>
         </div>
+    );
+}
+
+function ThemeOption({ name, subtitle, isSelected, onClick, disabled, colors }) {
+    return (
+        <button 
+            onClick={onClick}
+            disabled={disabled}
+            className={`p-4 rounded-xl transition-all duration-200 text-left relative group ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+                background: isSelected 
+                    ? 'rgba(212, 175, 55, 0.08)' 
+                    : 'rgba(255, 255, 255, 0.02)',
+                border: isSelected 
+                    ? '1px solid rgba(212, 175, 55, 0.3)' 
+                    : '1px solid rgba(255, 255, 255, 0.06)',
+                boxShadow: isSelected 
+                    ? '0 0 20px rgba(212, 175, 55, 0.1)' 
+                    : 'none'
+            }}
+        >
+            {/* Theme preview */}
+            <div 
+                className="h-24 rounded-lg mb-3 relative overflow-hidden"
+                style={{ 
+                    background: colors.bg,
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}
+            >
+                {/* Header bar */}
+                <div 
+                    className="absolute top-0 left-0 right-0 h-3"
+                    style={{ background: colors.header }}
+                />
+                {/* Sidebar */}
+                <div 
+                    className="absolute left-0 top-3 bottom-0 w-5"
+                    style={{ 
+                        background: colors.sidebar,
+                        borderRight: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}
+                />
+                {/* Content indicators */}
+                <div className="absolute top-5 left-7 right-2 space-y-1.5">
+                    <div 
+                        className="h-2 rounded-full w-3/4"
+                        style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                    />
+                    <div 
+                        className="h-2 rounded-full w-1/2"
+                        style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                    />
+                </div>
+                {/* Accent dot */}
+                <div 
+                    className="absolute top-5 right-3 w-2 h-2 rounded-full"
+                    style={{ background: colors.accent }}
+                />
+            </div>
+            
+            <div>
+                <div 
+                    className="font-semibold"
+                    style={{ color: isSelected ? '#fff' : 'rgba(255, 255, 255, 0.8)' }}
+                >
+                    {name}
+                </div>
+                <div 
+                    className="text-xs"
+                    style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+                >
+                    {subtitle}
+                </div>
+            </div>
+            
+            {/* Selected indicator */}
+            {isSelected && (
+                <div 
+                    className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{
+                        background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)'
+                    }}
+                >
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+            )}
+        </button>
     );
 }

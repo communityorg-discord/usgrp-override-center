@@ -42,6 +42,8 @@ const menuConfig = [
             { type: 'separator' },
             { label: 'Memory Editor', action: 'tools.memory' },
             { label: 'Database Browser', action: 'tools.database' },
+            { type: 'separator' },
+            { label: 'Impersonate User...', action: 'tools.impersonate' },
         ]
     },
     {
@@ -59,6 +61,7 @@ const menuConfig = [
 
 export default function MenuBar({ onMenuAction }) {
     const [activeMenu, setActiveMenu] = useState(null);
+    const [hoveredItem, setHoveredItem] = useState(null);
     const menuRef = useRef(null);
 
     useEffect(() => {
@@ -81,35 +84,82 @@ export default function MenuBar({ onMenuAction }) {
     }
 
     return (
-        <div ref={menuRef} className="h-7 bg-surface-secondary border-b border-gray-800 flex items-center px-2 text-sm select-none">
+        <div 
+            ref={menuRef} 
+            className="h-7 flex items-center px-1 text-sm select-none"
+            style={{
+                background: 'rgba(10, 10, 18, 0.95)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)'
+            }}
+        >
             {menuConfig.map((menu) => (
                 <div key={menu.label} className="relative">
                     <button
                         onClick={() => handleMenuClick(menu.label)}
                         onMouseEnter={() => activeMenu && setActiveMenu(menu.label)}
-                        className={`px-3 py-1 rounded transition-colors ${
-                            activeMenu === menu.label 
-                                ? 'bg-gray-700 text-white' 
-                                : 'text-gray-300 hover:bg-gray-800'
-                        }`}
+                        className="px-3 py-1 rounded transition-all duration-100"
+                        style={{
+                            background: activeMenu === menu.label 
+                                ? 'rgba(255, 255, 255, 0.08)' 
+                                : 'transparent',
+                            color: activeMenu === menu.label 
+                                ? '#fff' 
+                                : 'rgba(255, 255, 255, 0.5)'
+                        }}
+                        onMouseOver={(e) => {
+                            if (!activeMenu) {
+                                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+                            }
+                        }}
+                        onMouseOut={(e) => {
+                            if (!activeMenu || activeMenu !== menu.label) {
+                                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
+                            }
+                        }}
                     >
                         {menu.label}
                     </button>
                     
                     {activeMenu === menu.label && (
-                        <div className="absolute top-full left-0 mt-0.5 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 z-50">
+                        <div 
+                            className="absolute top-full left-0 mt-0.5 w-56 rounded-xl py-1.5 z-50 animate-fade-in"
+                            style={{
+                                background: 'linear-gradient(145deg, rgba(22, 22, 38, 0.98) 0%, rgba(14, 14, 26, 0.99) 100%)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.1)'
+                            }}
+                        >
                             {menu.items.map((item, i) => (
                                 item.type === 'separator' ? (
-                                    <div key={i} className="h-px bg-gray-700 my-1 mx-2" />
+                                    <div 
+                                        key={i} 
+                                        className="h-px mx-2 my-1.5"
+                                        style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                                    />
                                 ) : (
                                     <button
                                         key={i}
                                         onClick={() => handleItemClick(item.action)}
-                                        className="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-gray-800 text-gray-300 hover:text-white"
+                                        onMouseEnter={() => setHoveredItem(`${menu.label}-${i}`)}
+                                        onMouseLeave={() => setHoveredItem(null)}
+                                        className="w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors duration-100"
+                                        style={{
+                                            background: hoveredItem === `${menu.label}-${i}` 
+                                                ? 'rgba(212, 175, 55, 0.08)' 
+                                                : 'transparent',
+                                            color: hoveredItem === `${menu.label}-${i}` 
+                                                ? '#fff' 
+                                                : 'rgba(255, 255, 255, 0.7)'
+                                        }}
                                     >
-                                        <span>{item.label}</span>
+                                        <span className="text-sm">{item.label}</span>
                                         {item.shortcut && (
-                                            <span className="text-xs text-gray-500">{item.shortcut}</span>
+                                            <span 
+                                                className="text-xs font-mono"
+                                                style={{ color: 'rgba(255, 255, 255, 0.3)' }}
+                                            >
+                                                {item.shortcut}
+                                            </span>
                                         )}
                                     </button>
                                 )
