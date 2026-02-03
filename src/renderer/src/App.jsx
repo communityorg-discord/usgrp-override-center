@@ -44,6 +44,16 @@ import AboutModal from './components/AboutModal';
 import ImpersonateModal from './components/ImpersonateModal';
 import SetupWizard from './components/SetupWizard';
 
+import UserLookup from './pages/UserLookup';
+import EconomyUsers from './pages/EconomyUsers';
+import MoneyEditor from './pages/MoneyEditor';
+import Treasury from './pages/Treasury';
+import TransactionLog from './pages/TransactionLog';
+import PayrollManager from './pages/PayrollManager';
+import CaseManager from './pages/CaseManager';
+import QuickModeration from './pages/QuickModeration';
+import PositionManager from './pages/PositionManager';
+
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -300,6 +310,15 @@ export default function App() {
                         <Route path="/webhooks" element={<WebhookTester />} />
                         <Route path="/profiler" element={<Profiler />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/economy/users" element={<EconomyUsers />} />
+                        <Route path="/economy/money" element={<MoneyEditor />} />
+                        <Route path="/economy/treasury" element={<Treasury />} />
+                        <Route path="/economy/transactions" element={<TransactionLog />} />
+                        <Route path="/economy/payroll" element={<PayrollManager />} />
+                        <Route path="/moderation/cases" element={<CaseManager />} />
+                        <Route path="/moderation/actions" element={<QuickModeration />} />
+                        <Route path="/government/positions" element={<PositionManager />} />
+                        <Route path="/users/lookup" element={<UserLookup />} />
                     </Routes>
                 </main>
 

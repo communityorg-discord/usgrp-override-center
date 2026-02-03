@@ -1,114 +1,175 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-// Grouped tabs for better organization
-const tabGroups = [
+// Navigation structure with grouped submenus
+const navigationItems = [
     {
-        id: 'overview',
-        tabs: [
-            { path: '/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-            { path: '/health', label: 'Health', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+        path: '/',
+        emoji: '📊'
+    },
+    {
+        id: 'health',
+        label: 'Health',
+        icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+        path: '/health',
+        emoji: '❤️'
+    },
+    {
+        id: 'systems',
+        label: 'Systems',
+        icon: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01',
+        emoji: '🖥️',
+        submenu: [
+            { path: '/servers', label: 'Servers', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { path: '/processes', label: 'Processes', icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
+            { path: '/metrics', label: 'Metrics', icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+            { path: '/graph', label: 'Graph', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+            { path: '/profiler', label: 'Profiler', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+            { path: '/network', label: 'Network', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' },
+            { path: '/cron', label: 'Cron Jobs', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
         ]
     },
     {
         id: 'economy',
-        tabs: [
-            { path: '/economy/users', label: 'Economy Users', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        label: 'Economy',
+        icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+        emoji: '💰',
+        submenu: [
+            { path: '/economy/users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
             { path: '/economy/money', label: 'Money Editor', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
             { path: '/economy/treasury', label: 'Treasury', icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
             { path: '/economy/transactions', label: 'Transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
             { path: '/economy/payroll', label: 'Payroll', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+            { path: '/economy/housing', label: 'Housing', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+            { path: '/economy/vehicles', label: 'Vehicles', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10h10zm0 0h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 11-4 0m8 0a2 2 0 11-4 0' },
+            { path: '/economy/businesses', label: 'Businesses', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
         ]
     },
     {
         id: 'moderation',
-        tabs: [
+        label: 'Moderation',
+        icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
+        emoji: '⚖️',
+        submenu: [
             { path: '/moderation/cases', label: 'Cases', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-            { path: '/moderation/actions', label: 'Quick Mod', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-            { path: '/government/positions', label: 'Positions', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+            { path: '/moderation/actions', label: 'Quick Actions', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
+            { path: '/moderation/watchlist', label: 'Watchlist', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
+            { path: '/audit', label: 'Audit Log', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
             { path: '/users/lookup', label: 'User Lookup', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
         ]
     },
     {
-        id: 'systems',
-        tabs: [
-            { path: '/servers', label: 'Servers', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-            { path: '/systems', label: 'Systems', icon: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01' },
-            { path: '/graph', label: 'Graph', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-            { path: '/profiler', label: 'Profiler', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-            { path: '/metrics', label: 'Metrics', icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
-            { path: '/processes', label: 'Processes', icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
-            { path: '/network', label: 'Network', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' },
-            { path: '/cron', label: 'Cron', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+        id: 'government',
+        label: 'Government',
+        icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+        emoji: '🏛️',
+        submenu: [
+            { path: '/government/positions', label: 'Positions', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+            { path: '/discord', label: 'Discord Mgmt', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+            { path: '/bans', label: 'Bans', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
         ]
     },
     {
         id: 'security',
-        tabs: [
+        label: 'Security',
+        icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+        emoji: '🔐',
+        submenu: [
             { path: '/dns', label: 'DNS', icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z' },
             { path: '/ssl', label: 'SSL', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-            { path: '/secrets', label: 'Vault', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-            { path: '/ratelimits', label: 'Limits', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
-            { path: '/timeline', label: 'Timeline', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
-        ]
-    },
-    {
-        id: 'discord',
-        tabs: [
-            { path: '/discord', label: 'Discord', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
-            { path: '/bans', label: 'Bans', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
-            { path: '/audit', label: 'Audit', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+            { path: '/secrets', label: 'Secrets', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
+            { path: '/ratelimits', label: 'Rate Limits', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
+            { path: '/apikeys', label: 'API Keys', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
         ]
     },
     {
         id: 'tools',
-        tabs: [
+        label: 'Tools',
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+        emoji: '🛠️',
+        submenu: [
             { path: '/deploy', label: 'Deploy', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
+            { path: '/terminal', label: 'Terminal', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+            { path: '/quick-commands', label: 'Quick Commands', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+            { path: '/webhooks', label: 'Webhooks', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
             { path: '/templates', label: 'Templates', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' },
             { path: '/alerts', label: 'Alerts', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-            { path: '/webhooks', label: 'Webhooks', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-            { path: '/terminal', label: 'Terminal', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z' },
-            { path: '/quick-commands', label: 'Commands', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-            { path: '/logs', label: 'Logs', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
         ]
     },
     {
         id: 'data',
-        tabs: [
+        label: 'Data',
+        icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4',
+        emoji: '📁',
+        submenu: [
             { path: '/files', label: 'Files', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
             { path: '/config', label: 'Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
             { path: '/database', label: 'Database', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4' },
             { path: '/migrations', label: 'Migrations', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
             { path: '/backups', label: 'Backups', icon: 'M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4' },
             { path: '/memory', label: 'Memory', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' },
-            { path: '/apikeys', label: 'Keys', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
+            { path: '/logs', label: 'Logs', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
         ]
+    },
+    {
+        id: 'settings',
+        label: 'Settings',
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+        path: '/settings',
+        emoji: '⚙️'
     },
 ];
 
-const allTabs = tabGroups.flatMap(g => g.tabs);
-
 export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onImpersonate }) {
     const location = useLocation();
-    const [showMore, setShowMore] = useState(false);
-    const [visibleTabs, setVisibleTabs] = useState(8);
-    const containerRef = useRef(null);
-    const moreMenuRef = useRef(null);
+    const [openSubmenu, setOpenSubmenu] = useState(null);
+    const [isMobile, setIsMobile] = useState(false);
+    const toolbarRef = useRef(null);
+    
+    // Detect mobile
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
     
     // Close menu on click outside
     useEffect(() => {
         function handleClickOutside(e) {
-            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
-                setShowMore(false);
+            if (toolbarRef.current && !toolbarRef.current.contains(e.target)) {
+                setOpenSubmenu(null);
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
     
-    const displayedTabs = allTabs.slice(0, visibleTabs);
-    const hiddenTabs = allTabs.slice(visibleTabs);
-    const hasMore = hiddenTabs.length > 0;
+    // Check if any submenu item is active
+    const isItemActive = (item) => {
+        if (item.path) {
+            return location.pathname === item.path;
+        }
+        if (item.submenu) {
+            return item.submenu.some(sub => location.pathname === sub.path);
+        }
+        return false;
+    };
+    
+    const handleItemHover = (itemId) => {
+        if (!isMobile) {
+            setOpenSubmenu(itemId);
+        }
+    };
+    
+    const handleItemClick = (itemId, hasSubmenu) => {
+        if (isMobile && hasSubmenu) {
+            setOpenSubmenu(openSubmenu === itemId ? null : itemId);
+        }
+    };
     
     return (
         <div 
@@ -117,80 +178,25 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
                 background: 'linear-gradient(180deg, rgba(12, 12, 20, 0.95) 0%, rgba(8, 8, 14, 0.98) 100%)',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.04)'
             }}
-            ref={containerRef}
+            ref={toolbarRef}
         >
-            {/* Left: Navigation Tabs */}
-            <div className="flex items-center gap-0.5 flex-1 overflow-visible">
-                {displayedTabs.map((tab, index) => {
-                    const isActive = location.pathname === tab.path;
-                    return (
-                        <NavTab
-                            key={tab.path}
-                            to={tab.path}
-                            icon={tab.icon}
-                            label={tab.label}
-                            isActive={isActive}
-                            index={index}
-                        />
-                    );
-                })}
-                
-                {/* More dropdown */}
-                {hasMore && (
-                    <div className="relative" ref={moreMenuRef}>
-                        <button
-                            onClick={() => setShowMore(!showMore)}
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-all duration-150 ${
-                                showMore 
-                                    ? 'bg-amber-500/10 text-amber-400' 
-                                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
-                            }`}
-                        >
-                            <span>More</span>
-                            <svg 
-                                className={`w-3.5 h-3.5 transition-transform duration-200 ${showMore ? 'rotate-180' : ''}`} 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        
-                        {showMore && (
-                            <div 
-                                className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-2xl z-50 min-w-[180px] max-h-[70vh] overflow-y-auto animate-fade-in"
-                                style={{
-                                    background: 'linear-gradient(145deg, rgba(22, 22, 38, 0.98) 0%, rgba(14, 14, 26, 0.99) 100%)',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
-                                }}
-                            >
-                                {hiddenTabs.map((tab) => {
-                                    const isActive = location.pathname === tab.path;
-                                    return (
-                                        <Link
-                                            key={tab.path}
-                                            to={tab.path}
-                                            onClick={() => setShowMore(false)}
-                                            className={`flex items-center gap-3 px-4 py-2.5 transition-all duration-150 ${
-                                                isActive 
-                                                    ? 'bg-amber-500/10 text-amber-400' 
-                                                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
-                                            }`}
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={tab.icon} />
-                                            </svg>
-                                            <span className="text-sm font-medium">{tab.label}</span>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+            {/* Left: Navigation Items */}
+            <nav className="flex items-center gap-0.5 flex-1 overflow-visible">
+                {navigationItems.map((item) => (
+                    <NavItem
+                        key={item.id}
+                        item={item}
+                        isActive={isItemActive(item)}
+                        isOpen={openSubmenu === item.id}
+                        onHover={() => handleItemHover(item.id)}
+                        onLeave={() => !isMobile && setOpenSubmenu(null)}
+                        onClick={() => handleItemClick(item.id, !!item.submenu)}
+                        onSubmenuClose={() => setOpenSubmenu(null)}
+                        isMobile={isMobile}
+                        location={location}
+                    />
+                ))}
+            </nav>
 
             {/* Right: Quick Actions & Profile */}
             <div className="flex items-center gap-1.5 ml-4">
@@ -230,26 +236,94 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
     );
 }
 
-function NavTab({ to, icon, label, isActive, index }) {
+function NavItem({ item, isActive, isOpen, onHover, onLeave, onClick, onSubmenuClose, isMobile, location }) {
+    const hasSubmenu = !!item.submenu;
+    const itemRef = useRef(null);
+    
+    // Direct link for items without submenu
+    if (!hasSubmenu) {
+        return (
+            <Link
+                to={item.path}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-all duration-150 ${
+                    isActive
+                        ? 'text-amber-400'
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                }`}
+                style={{
+                    background: isActive ? 'rgba(212, 175, 55, 0.08)' : undefined,
+                    boxShadow: isActive ? 'inset 0 0 0 1px rgba(212, 175, 55, 0.15)' : undefined,
+                }}
+            >
+                <span className="text-base">{item.emoji}</span>
+                <span>{item.label}</span>
+            </Link>
+        );
+    }
+    
     return (
-        <Link
-            to={to}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-all duration-150 ${
-                isActive
-                    ? 'text-amber-400'
-                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
-            }`}
-            style={{
-                background: isActive ? 'rgba(212, 175, 55, 0.08)' : undefined,
-                boxShadow: isActive ? 'inset 0 0 0 1px rgba(212, 175, 55, 0.15)' : undefined,
-                animationDelay: `${index * 30}ms`
-            }}
+        <div 
+            className="relative"
+            ref={itemRef}
+            onMouseEnter={onHover}
+            onMouseLeave={onLeave}
         >
-            <svg className="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
-            </svg>
-            <span>{label}</span>
-        </Link>
+            <button
+                onClick={onClick}
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-all duration-150 ${
+                    isActive || isOpen
+                        ? 'text-amber-400 bg-amber-500/10'
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                }`}
+            >
+                <span className="text-base">{item.emoji}</span>
+                <span>{item.label}</span>
+                <svg 
+                    className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            
+            {/* Submenu Dropdown */}
+            {isOpen && (
+                <div 
+                    className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-2xl z-50 min-w-[200px] animate-submenu-in"
+                    style={{
+                        background: 'linear-gradient(145deg, rgba(22, 22, 38, 0.98) 0%, rgba(14, 14, 26, 0.99) 100%)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255,255,255,0.1)'
+                    }}
+                >
+                    {item.submenu.map((subItem) => {
+                        const isSubActive = location.pathname === subItem.path;
+                        return (
+                            <Link
+                                key={subItem.path}
+                                to={subItem.path}
+                                onClick={onSubmenuClose}
+                                className={`flex items-center gap-3 px-4 py-2.5 transition-all duration-150 ${
+                                    isSubActive 
+                                        ? 'bg-amber-500/10 text-amber-400' 
+                                        : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+                                }`}
+                            >
+                                <svg className="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={subItem.icon} />
+                                </svg>
+                                <span className="text-sm font-medium">{subItem.label}</span>
+                                {isSubActive && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                                )}
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
     );
 }
 

@@ -596,9 +596,6 @@ function setupIPC() {
             throw error;
         }
     });
-            throw error;
-        }
-    });
     ipcMain.handle('updater:download', () => autoUpdater.downloadUpdate());
     ipcMain.handle('updater:install', () => {
         app.isQuitting = true;
