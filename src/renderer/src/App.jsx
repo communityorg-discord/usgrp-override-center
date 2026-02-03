@@ -69,6 +69,11 @@ import RelationshipMapper from './pages/RelationshipMapper';
 import LiveMap from './pages/LiveMap';
 import ScriptRunner from './pages/ScriptRunner';
 import GitManager from './pages/GitManager';
+import AnnouncementBuilder from './pages/AnnouncementBuilder';
+import AtlasBrainConfig from './pages/AtlasBrainConfig';
+import EconomySimulator from './pages/EconomySimulator';
+import JudicialPanel from './pages/JudicialPanel';
+import TicketManager from './pages/TicketManager';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -414,6 +419,11 @@ export default function App() {
                         <Route path="/relationships" element={<RelationshipMapper />} />
                         <Route path="/scripts" element={<ScriptRunner />} />
                         <Route path="/git" element={<GitManager />} />
+                        <Route path="/announcements" element={<AnnouncementBuilder />} />
+                        <Route path="/atlas-brain" element={<AtlasBrainConfig />} />
+                        <Route path="/economy/simulator" element={<EconomySimulator />} />
+                        <Route path="/judicial" element={<JudicialPanel />} />
+                        <Route path="/tickets" element={<TicketManager />} />
                     </Routes>
                 </main>
 
