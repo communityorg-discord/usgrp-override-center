@@ -12,6 +12,11 @@ export default function Settings() {
         loadSettings();
     }, []);
 
+    // Apply theme on load and change
+    useEffect(() => {
+        applyTheme(settings.theme);
+    }, [settings.theme]);
+
     async function loadSettings() {
         const alwaysOnTop = await window.electron.store.get('alwaysOnTop');
         const startMinimized = await window.electron.store.get('startMinimized');
@@ -24,6 +29,17 @@ export default function Settings() {
             theme: theme || 'dark'
         });
         setVersion(ver);
+    }
+
+    function applyTheme(theme) {
+        const root = document.documentElement;
+        if (theme === 'light') {
+            root.classList.add('light-theme');
+            root.classList.remove('dark-theme');
+        } else {
+            root.classList.add('dark-theme');
+            root.classList.remove('light-theme');
+        }
     }
 
     async function updateSetting(key, value) {
@@ -80,6 +96,55 @@ export default function Settings() {
                             className="w-5 h-5 accent-amber-500"
                         />
                     </label>
+                </div>
+            </div>
+
+            {/* Appearance */}
+            <div className="card mb-6">
+                <h2 className="text-lg font-semibold text-white mb-4">Appearance</h2>
+                
+                <div className="space-y-4">
+                    <div>
+                        <span className="text-white block mb-3">Theme</span>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => updateSetting('theme', 'dark')}
+                                className={`p-4 rounded-lg border-2 transition-all ${
+                                    settings.theme === 'dark' 
+                                        ? 'border-amber-500 bg-amber-500/10' 
+                                        : 'border-white/10 hover:border-white/20'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center">
+                                        <span className="text-lg">🌙</span>
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-white font-medium">Dark</div>
+                                        <div className="text-sm text-gray-500">Default theme</div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => updateSetting('theme', 'light')}
+                                className={`p-4 rounded-lg border-2 transition-all ${
+                                    settings.theme === 'light' 
+                                        ? 'border-amber-500 bg-amber-500/10' 
+                                        : 'border-white/10 hover:border-white/20'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-300 flex items-center justify-center">
+                                        <span className="text-lg">☀️</span>
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-white font-medium">Light</div>
+                                        <div className="text-sm text-gray-500">Light mode</div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

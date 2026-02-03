@@ -571,18 +571,84 @@ function setupIPC() {
     
     // Auto updater
     ipcMain.handle('updater:check', async () => {
-        // Update checker disabled - too many issues with electron-updater
-        // Just show a link to check manually
-        sendToRenderer('update-not-available', { 
-            disabled: true,
-            message: 'Auto-check disabled. Visit GitHub releases to check for updates.'
-        });
-        return null;
+        sendToRenderer('update-checking', {});
+        
+        try {
+            // Use GitHub API directly - way more reliable than electron-updater
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(
+                'https://api.github.com/repos/communityorg-discord/usgrp-override-center/releases/latest',
+                { 
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                }
+            );
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`GitHub API returned ${response.status}`);
+            }
+            
+            const release = await response.json();
+            const latestVersion = release.tag_name.replace('v', '');
+            const currentVersion = app.getVersion();
+            
+            console.log(`[UpdateChecker] Current: ${currentVersion}, Latest: ${latestVersion}`);
+            
+            // Compare versions
+            const isNewer = compareVersions(latestVersion, currentVersion) > 0;
+            
+            if (isNewer) {
+                // Find the exe asset
+                const exeAsset = release.assets.find(a => a.name.endsWith('.exe'));
+                sendToRenderer('update-available', {
+                    version: latestVersion,
+                    releaseNotes: release.body,
+                    downloadUrl: exeAsset ? exeAsset.browser_download_url : release.html_url
+                });
+            } else {
+                sendToRenderer('update-not-available', {});
+            }
+            
+            return { version: latestVersion, isNewer };
+        } catch (error) {
+            console.error('[UpdateChecker] Failed:', error.message);
+            if (error.name === 'AbortError') {
+                sendToRenderer('update-error', 'Update check timed out. Check your internet connection.');
+            } else {
+                sendToRenderer('update-error', error.message || 'Failed to check for updates');
+            }
+            return null;
+        }
     });
-    ipcMain.handle('updater:download', () => autoUpdater.downloadUpdate());
+    
+    // Simple version comparator (handles x.y.z format)
+    function compareVersions(a, b) {
+        const partsA = a.split('.').map(Number);
+        const partsB = b.split('.').map(Number);
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            const numA = partsA[i] || 0;
+            const numB = partsB[i] || 0;
+            if (numA > numB) return 1;
+            if (numA < numB) return -1;
+        }
+        return 0;
+    }
+    
+    // Download just opens the URL in browser - user downloads manually
+    ipcMain.handle('updater:download', async (event, url) => {
+        if (url) {
+            await shell.openExternal(url);
+        } else {
+            await shell.openExternal('https://github.com/communityorg-discord/usgrp-override-center/releases/latest');
+        }
+    });
+    
     ipcMain.handle('updater:install', () => {
-        app.isQuitting = true;
-        autoUpdater.quitAndInstall();
+        // Not used with manual download approach
+        app.quit();
     });
     
     // App info

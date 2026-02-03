@@ -57,6 +57,13 @@ import HousingManager from './pages/HousingManager';
 import VehicleRegistry from './pages/VehicleRegistry';
 import BusinessManager from './pages/BusinessManager';
 import WatchlistViewer from './pages/WatchlistViewer';
+import GangManager from './pages/GangManager';
+import ActivityDashboard from './pages/ActivityDashboard';
+import GodMode from './pages/GodMode';
+import EconomyStats from './pages/EconomyStats';
+import BulkWipe from './pages/BulkWipe';
+import AutoModConfig from './pages/AutoModConfig';
+import CommandPalette from './components/CommandPalette';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,6 +76,7 @@ export default function App() {
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonatingUser, setImpersonatingUser] = useState(null);
     const [user, setUser] = useState(null);
+    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -137,6 +145,11 @@ export default function App() {
 
     function setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
+            // Ctrl+K - Command Palette
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                setCommandPaletteOpen(prev => !prev);
+            }
             // Ctrl+Shift+T - Terminal
             if (e.ctrlKey && e.shiftKey && e.key === 'T') {
                 e.preventDefault();
@@ -325,8 +338,14 @@ export default function App() {
                         <Route path="/moderation/cases" element={<CaseManager />} />
                         <Route path="/moderation/actions" element={<QuickModeration />} />
                         <Route path="/moderation/watchlist" element={<WatchlistViewer />} />
+                        <Route path="/moderation/automod" element={<AutoModConfig />} />
                         <Route path="/government/positions" element={<PositionManager />} />
                         <Route path="/users/lookup" element={<UserLookup />} />
+                        <Route path="/economy/gangs" element={<GangManager />} />
+                        <Route path="/economy/stats" element={<EconomyStats />} />
+                        <Route path="/economy/godmode" element={<GodMode />} />
+                        <Route path="/economy/bulk-wipe" element={<BulkWipe />} />
+                        <Route path="/activity" element={<ActivityDashboard />} />
                     </Routes>
                 </main>
 
@@ -360,6 +379,12 @@ export default function App() {
             {showImpersonate && (
                 <ImpersonateModal onClose={() => setShowImpersonate(false)} />
             )}
+            
+            {/* Command Palette */}
+            <CommandPalette 
+                isOpen={commandPaletteOpen} 
+                onClose={() => setCommandPaletteOpen(false)} 
+            />
         </div>
     );
 }
