@@ -68,6 +68,7 @@ export default function UpdateNotification({ info, onDismiss }) {
 
     // Up to date state
     if (isUpToDate) {
+        const isDisabled = info.disabled;
         return (
             <div 
                 className="fixed bottom-6 left-6 max-w-sm rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in"
@@ -86,9 +87,19 @@ export default function UpdateNotification({ info, onDismiss }) {
                         </svg>
                     </div>
                     <div>
-                        <p className="text-white font-medium">You're up to date!</p>
+                        <p className="text-white font-medium">
+                            {isDisabled ? 'Check Manually' : "You're up to date!"}
+                        </p>
                         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                            No updates available
+                            {isDisabled ? (
+                                <a 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); window.electron.shell.openExternal('https://github.com/communityorg-discord/usgrp-override-center/releases'); }}
+                                    style={{ color: '#D4AF37', textDecoration: 'underline' }}
+                                >
+                                    View releases on GitHub
+                                </a>
+                            ) : 'No updates available'}
                         </p>
                     </div>
                 </div>

@@ -571,48 +571,13 @@ function setupIPC() {
     
     // Auto updater
     ipcMain.handle('updater:check', async () => {
-        sendToRenderer('update-checking', {});
-        
-        // Use a promise race with a hard timeout
-        const checkWithTimeout = () => {
-            return new Promise((resolve) => {
-                // Hard timeout - always resolves after 6 seconds
-                const timeout = setTimeout(() => {
-                    console.log('[AutoUpdater] Hard timeout after 6s');
-                    resolve({ timedOut: true });
-                }, 6000);
-                
-                // Try the actual check
-                autoUpdater.checkForUpdatesAndNotify()
-                    .then(result => {
-                        clearTimeout(timeout);
-                        resolve({ result });
-                    })
-                    .catch(error => {
-                        clearTimeout(timeout);
-                        resolve({ error });
-                    });
-            });
-        };
-        
-        const outcome = await checkWithTimeout();
-        
-        if (outcome.timedOut) {
-            sendToRenderer('update-error', 'Update check timed out. Try again later.');
-            return null;
-        }
-        
-        if (outcome.error) {
-            console.error('[AutoUpdater] Check failed:', outcome.error);
-            sendToRenderer('update-error', outcome.error.message || 'Failed to check for updates');
-            return null;
-        }
-        
-        if (!outcome.result || !outcome.result.updateInfo) {
-            sendToRenderer('update-not-available', {});
-        }
-        
-        return outcome.result;
+        // Update checker disabled - too many issues with electron-updater
+        // Just show a link to check manually
+        sendToRenderer('update-not-available', { 
+            disabled: true,
+            message: 'Auto-check disabled. Visit GitHub releases to check for updates.'
+        });
+        return null;
     });
     ipcMain.handle('updater:download', () => autoUpdater.downloadUpdate());
     ipcMain.handle('updater:install', () => {
