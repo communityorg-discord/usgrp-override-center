@@ -904,37 +904,48 @@ function CommunityDashboard({ data = {}, onRefresh }) {
         error = null 
     } = data || {};
     
-    // Generate mock data if API returns nothing
-    const mockEconomy = economy || {
-        totalGDP: 15847293,
-        moneySupply: 8234567,
-        activeUsers: 1247,
-        transactionsToday: 3421,
-        topEarners: [
-            { name: 'Atlas', balance: 542000, rank: 1 },
-            { name: 'NightOwl', balance: 387000, rank: 2 },
-            { name: 'CryptoKing', balance: 298000, rank: 3 },
-            { name: 'TraderJoe', balance: 245000, rank: 4 },
-            { name: 'WealthyWiz', balance: 198000, rank: 5 }
+    // Parse API response into expected format
+    const economyStats = economy?.stats || economy || {};
+    const moderationStats = moderation || {};
+    const discordStats = discord || {};
+    const activityStats = activity || {};
+    
+    // Generate fallback data if API returns nothing useful
+    const mockEconomy = {
+        totalGDP: economyStats.gdp30d || economyStats.totalMoneySupply || 15847293,
+        moneySupply: economyStats.totalMoneySupply || 8234567,
+        activeUsers: economyStats.activeUsers7d || economyStats.totalUsers || 1247,
+        transactionsToday: activityStats.transactionsToday || 3421,
+        topEarners: (economy?.topUsers || []).slice(0, 5).map((u, i) => ({
+            name: u.username || u.discord_id || 'User',
+            balance: u.total || u.balance || 0,
+            rank: i + 1
+        })) || [
+            { name: 'Loading...', balance: 0, rank: 1 }
         ],
-        inflationRate: 2.4,
-        averageBalance: 6532
+        inflationRate: parseFloat(economyStats.inflation) || 2.4,
+        averageBalance: economyStats.avgBalance || 6532
     };
     
-    const mockModeration = moderation || {
-        openCases: 12,
-        casesToday: 3,
-        casesThisWeek: 18,
-        warningsToday: 7,
-        warningsThisWeek: 42,
-        activeMutes: 4,
+    // Ensure topEarners has at least one entry
+    if (mockEconomy.topEarners.length === 0) {
+        mockEconomy.topEarners = [{ name: 'No data', balance: 0, rank: 1 }];
+    }
+    
+    const mockModeration = {
+        openCases: moderationStats.totalCases || 12,
+        casesToday: moderationStats.todayCases || 3,
+        casesThisWeek: moderationStats.recentCases || 18,
+        warningsToday: moderationStats.casesByType?.warn || 7,
+        warningsThisWeek: moderationStats.casesByType?.warn || 42,
+        activeMutes: moderationStats.activeMutes || 4,
         watchlistCount: 23,
-        banCount: 156
+        banCount: moderationStats.activeBans || 156
     };
     
-    const mockDiscord = discord || {
-        totalMembers: 15847,
-        online: 3421,
+    const mockDiscord = {
+        totalMembers: discordStats.memberCount || 15847,
+        online: discordStats.onlineCount || 3421,
         idle: 892,
         dnd: 234,
         offline: 11300,
