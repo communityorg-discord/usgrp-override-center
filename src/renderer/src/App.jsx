@@ -68,6 +68,7 @@ import KeyboardShortcuts from './components/KeyboardShortcuts';
 import AnimatedBackground from './components/AnimatedBackground';
 import { PiPProvider } from './components/PictureInPicture';
 import { ContextMenuProvider } from './components/ContextMenu';
+import { SessionRecordingProvider } from './components/SessionRecording';
 import GlobalSearch from './components/GlobalSearch';
 import FraudDetection from './pages/FraudDetection';
 import RelationshipMapper from './pages/RelationshipMapper';
@@ -387,6 +388,7 @@ export default function App() {
     return (
         <ContextMenuProvider>
         <PiPProvider>
+        <SessionRecordingProvider>
         <div className="h-screen flex flex-col bg-surface-primary overflow-hidden">
             {/* Impersonation Banner */}
             {impersonatingUser && (
@@ -543,6 +545,7 @@ export default function App() {
             {/* Animated Background */}
             <AnimatedBackground enabled={animatedBgEnabled} />
         </div>
+        </SessionRecordingProvider>
         </PiPProvider>
         </ContextMenuProvider>
     );

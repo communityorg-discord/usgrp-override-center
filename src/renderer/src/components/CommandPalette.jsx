@@ -76,6 +76,7 @@ const PAGES = [
     
     // Settings
     { path: '/settings', label: 'Settings', keywords: ['preferences', 'config'], emoji: '⚙️' },
+    { path: '/settings#recordings', label: 'Session Recordings', keywords: ['replay', 'record', 'capture'], emoji: '⏺' },
 ];
 
 export default function CommandPalette({ isOpen, onClose }) {

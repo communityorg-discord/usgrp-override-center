@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+
+const RecordingManagerLazy = lazy(() => import('../components/SessionRecording').then(m => ({ default: m.RecordingManager })));
 
 // Gradient presets (Discord-style)
 const GRADIENT_PRESETS = [
@@ -443,6 +445,19 @@ export default function Settings() {
                                 <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
                             </div>
                         </label>
+                    </div>
+                </section>
+
+                {/* Session Recordings */}
+                <section className="mb-10" id="recordings">
+                    <h2 className="text-lg font-semibold text-white mb-4">Session Recordings</h2>
+                    <div className="bg-white/5 rounded-xl p-6">
+                        <p className="text-sm text-gray-400 mb-4">
+                            Record your actions and replay them later for demos or auditing.
+                        </p>
+                        <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+                            <RecordingManagerLazy />
+                        </Suspense>
                     </div>
                 </section>
 
