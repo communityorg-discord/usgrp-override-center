@@ -24,6 +24,11 @@ import QuickCommands from './pages/QuickCommands';
 import Metrics from './pages/Metrics';
 import ConfigEditor from './pages/ConfigEditor';
 import ServiceHealth from './pages/ServiceHealth';
+import DNSManager from './pages/DNSManager';
+import SecretsVault from './pages/SecretsVault';
+import SSLMonitor from './pages/SSLMonitor';
+import AuditTimeline from './pages/AuditTimeline';
+import RateLimits from './pages/RateLimits';
 import Chat from './components/Chat';
 import Login from './pages/Login';
 import UpdateNotification from './components/UpdateNotification';
@@ -275,6 +280,11 @@ export default function App() {
                         <Route path="/metrics" element={<Metrics />} />
                         <Route path="/config" element={<ConfigEditor />} />
                         <Route path="/health" element={<ServiceHealth />} />
+                        <Route path="/dns" element={<DNSManager />} />
+                        <Route path="/secrets" element={<SecretsVault />} />
+                        <Route path="/ssl" element={<SSLMonitor />} />
+                        <Route path="/timeline" element={<AuditTimeline />} />
+                        <Route path="/ratelimits" element={<RateLimits />} />
                         <Route path="/settings" element={<Settings />} />
                     </Routes>
                 </main>
