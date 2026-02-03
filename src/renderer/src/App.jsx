@@ -6,6 +6,7 @@ import Toolbar from './components/Toolbar';
 import ActivityMonitor, { useActivityTracker } from './components/ActivityMonitor';
 import { useMacFeatures, useDockBadge } from './hooks/useMacFeatures';
 import { useWindowsFeatures, useTaskbarOverlay } from './hooks/useWindowsFeatures';
+import { useNotifications, usePowerMonitor, useIdleDetection } from './hooks/usePlatformFeatures';
 import Dashboard from './pages/Dashboard';
 import Systems from './pages/Systems';
 import ProcessManager from './pages/ProcessManager';
@@ -109,6 +110,24 @@ export default function App() {
     // Windows features - taskbar overlay for pending alerts
     const { isWin, flashTaskbar } = useWindowsFeatures();
     useTaskbarOverlay(pendingAlerts);
+    
+    // Cross-platform features
+    const { sendNotification } = useNotifications();
+    
+    // Power monitoring - pause polling when locked/suspended
+    const powerState = usePowerMonitor({
+        onSuspend: () => console.log('[App] System suspended'),
+        onResume: () => console.log('[App] System resumed'),
+        onLock: () => console.log('[App] Screen locked'),
+        onUnlock: () => console.log('[App] Screen unlocked')
+    });
+    
+    // Idle detection
+    useIdleDetection({
+        threshold: 300, // 5 minutes
+        onIdle: () => console.log('[App] User idle'),
+        onActive: () => console.log('[App] User active')
+    });
     
     const [showAbout, setShowAbout] = useState(false);
     const [showImpersonate, setShowImpersonate] = useState(false);

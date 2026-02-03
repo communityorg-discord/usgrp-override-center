@@ -166,6 +166,29 @@ contextBridge.exposeInMainWorld('electron', {
         isWin: process.platform === 'win32'
     },
 
+    // Cross-platform features
+    notify: {
+        send: (options) => ipcRenderer.invoke('notify:send', options),
+        isSupported: () => true // Electron notifications are always supported
+    },
+    
+    idle: {
+        getTime: () => ipcRenderer.invoke('idle:get-time'),
+        getState: () => ipcRenderer.invoke('idle:get-state'),
+        startMonitoring: (threshold) => ipcRenderer.invoke('idle:start-monitoring', threshold),
+        stopMonitoring: () => ipcRenderer.invoke('idle:stop-monitoring')
+    },
+    
+    power: {
+        getState: () => ipcRenderer.invoke('power:get-state')
+    },
+    
+    recent: {
+        add: (path, name) => ipcRenderer.invoke('recent:add', { path, name }),
+        clear: () => ipcRenderer.invoke('recent:clear'),
+        get: () => ipcRenderer.invoke('recent:get')
+    },
+
     // Script Runner
     scripts: {
         list: () => ipcRenderer.invoke('scripts:list'),
@@ -212,7 +235,14 @@ contextBridge.exposeInMainWorld('electron', {
             'auth-success',
             'screen-capture-detected',
             'system-theme-changed',
-            'thumbnail-button-click'
+            'thumbnail-button-click',
+            'notification-clicked',
+            'notification-action',
+            'notification-closed',
+            'idle-state-changed',
+            'power-state-changed',
+            'screen-lock-changed',
+            'open-recent-document'
         ];
         
         if (allowedChannels.includes(channel)) {

@@ -4,7 +4,7 @@
  * Electron main process handling window management, IPC, and system integration.
  */
 
-const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, shell, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, shell, dialog, nativeTheme, Notification, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -601,6 +601,15 @@ function setupWindowsFeatures() {
         return { success: true };
     });
     
+    // Windows dark mode detection
+    nativeTheme.on('updated', () => {
+        const isDark = nativeTheme.shouldUseDarkColors;
+        console.log(`[Windows] System appearance changed: ${isDark ? 'dark' : 'light'}`);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('system-theme-changed', { isDark });
+        }
+    });
+    
     // Handle jump list arguments
     const gotoArg = process.argv.find(arg => arg.startsWith('--goto='));
     if (gotoArg) {
@@ -611,6 +620,172 @@ function setupWindowsFeatures() {
     }
     
     console.log('[Windows] Windows features initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CROSS-PLATFORM FEATURES
+// ═══════════════════════════════════════════════════════════════
+
+let idleCheckInterval = null;
+let lastIdleState = 'active';
+let recentDocuments = [];
+
+function setupCrossPlatformFeatures() {
+    console.log('[Platform] Setting up cross-platform features');
+    
+    // ─────────────────────────────────────────────────────────────
+    // NATIVE NOTIFICATIONS
+    // ─────────────────────────────────────────────────────────────
+    
+    ipcMain.handle('notify:send', (event, { title, body, icon, actions, urgency = 'normal' }) => {
+        if (!Notification.isSupported()) {
+            return { success: false, error: 'Notifications not supported' };
+        }
+        
+        const notification = new Notification({
+            title: title || 'USGRP Developer Panel',
+            body: body || '',
+            icon: icon || path.join(__dirname, '../build/icon.png'),
+            urgency: urgency, // 'low', 'normal', 'critical'
+            silent: false,
+            hasReply: false,
+            actions: actions || []
+        });
+        
+        notification.on('click', () => {
+            if (mainWindow) {
+                mainWindow.show();
+                mainWindow.focus();
+            }
+            mainWindow?.webContents.send('notification-clicked', { title, body });
+        });
+        
+        notification.on('action', (event, index) => {
+            mainWindow?.webContents.send('notification-action', { title, actionIndex: index });
+        });
+        
+        notification.on('close', () => {
+            mainWindow?.webContents.send('notification-closed', { title });
+        });
+        
+        notification.show();
+        return { success: true };
+    });
+    
+    // ─────────────────────────────────────────────────────────────
+    // IDLE DETECTION
+    // ─────────────────────────────────────────────────────────────
+    
+    ipcMain.handle('idle:get-time', () => {
+        return { idleTime: powerMonitor.getSystemIdleTime() };
+    });
+    
+    ipcMain.handle('idle:get-state', () => {
+        const idleTime = powerMonitor.getSystemIdleTime();
+        let state = 'active';
+        if (idleTime > 300) state = 'idle'; // 5 minutes
+        if (idleTime > 900) state = 'away'; // 15 minutes
+        return { state, idleTime };
+    });
+    
+    ipcMain.handle('idle:start-monitoring', (event, thresholdSeconds = 300) => {
+        if (idleCheckInterval) clearInterval(idleCheckInterval);
+        
+        idleCheckInterval = setInterval(() => {
+            const idleTime = powerMonitor.getSystemIdleTime();
+            let state = 'active';
+            if (idleTime > thresholdSeconds) state = 'idle';
+            if (idleTime > thresholdSeconds * 3) state = 'away';
+            
+            if (state !== lastIdleState) {
+                lastIdleState = state;
+                mainWindow?.webContents.send('idle-state-changed', { state, idleTime });
+            }
+        }, 10000); // Check every 10 seconds
+        
+        return { success: true };
+    });
+    
+    ipcMain.handle('idle:stop-monitoring', () => {
+        if (idleCheckInterval) {
+            clearInterval(idleCheckInterval);
+            idleCheckInterval = null;
+        }
+        return { success: true };
+    });
+    
+    // ─────────────────────────────────────────────────────────────
+    // POWER MONITOR
+    // ─────────────────────────────────────────────────────────────
+    
+    powerMonitor.on('suspend', () => {
+        console.log('[Power] System suspending');
+        mainWindow?.webContents.send('power-state-changed', { state: 'suspend' });
+    });
+    
+    powerMonitor.on('resume', () => {
+        console.log('[Power] System resumed');
+        mainWindow?.webContents.send('power-state-changed', { state: 'resume' });
+    });
+    
+    powerMonitor.on('on-ac', () => {
+        console.log('[Power] Switched to AC power');
+        mainWindow?.webContents.send('power-state-changed', { state: 'on-ac' });
+    });
+    
+    powerMonitor.on('on-battery', () => {
+        console.log('[Power] Switched to battery');
+        mainWindow?.webContents.send('power-state-changed', { state: 'on-battery' });
+    });
+    
+    powerMonitor.on('lock-screen', () => {
+        console.log('[Power] Screen locked');
+        mainWindow?.webContents.send('screen-lock-changed', { locked: true });
+    });
+    
+    powerMonitor.on('unlock-screen', () => {
+        console.log('[Power] Screen unlocked');
+        mainWindow?.webContents.send('screen-lock-changed', { locked: false });
+    });
+    
+    // IPC to get current power state
+    ipcMain.handle('power:get-state', () => {
+        return {
+            onBattery: powerMonitor.isOnBatteryPower ? powerMonitor.isOnBatteryPower() : false,
+            idleTime: powerMonitor.getSystemIdleTime()
+        };
+    });
+    
+    // ─────────────────────────────────────────────────────────────
+    // RECENT DOCUMENTS
+    // ─────────────────────────────────────────────────────────────
+    
+    ipcMain.handle('recent:add', (event, { path: docPath, name }) => {
+        if (docPath) {
+            app.addRecentDocument(docPath);
+            recentDocuments.unshift({ path: docPath, name, addedAt: Date.now() });
+            recentDocuments = recentDocuments.slice(0, 10); // Keep last 10
+        }
+        return { success: true };
+    });
+    
+    ipcMain.handle('recent:clear', () => {
+        app.clearRecentDocuments();
+        recentDocuments = [];
+        return { success: true };
+    });
+    
+    ipcMain.handle('recent:get', () => {
+        return { documents: recentDocuments };
+    });
+    
+    // Handle opening recent documents
+    app.on('open-file', (event, filePath) => {
+        event.preventDefault();
+        mainWindow?.webContents.send('open-recent-document', { path: filePath });
+    });
+    
+    console.log('[Platform] Cross-platform features initialized');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1622,6 +1797,9 @@ app.whenReady().then(() => {
     if (isWin) {
         setupWindowsFeatures();
     }
+    
+    // Cross-platform features (notifications, idle, power, etc.)
+    setupCrossPlatformFeatures();
     
     // Check if launched with protocol URL (Windows/Linux)
     const url = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`));
