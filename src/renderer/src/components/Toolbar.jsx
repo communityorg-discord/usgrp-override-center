@@ -290,8 +290,11 @@ function NavItem({ item, isActive, isOpen, onHover, onLeave, onClick, onSubmenuC
             
             {/* Submenu Dropdown */}
             {isOpen && (
-                <div 
-                    className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-2xl z-50 min-w-[200px] animate-submenu-in"
+                <>
+                    {/* Invisible bridge to prevent gap hover loss */}
+                    <div className="absolute top-full left-0 w-full h-2" />
+                    <div 
+                        className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-2xl z-50 min-w-[200px] animate-submenu-in"
                     style={{
                         background: 'linear-gradient(145deg, rgba(22, 22, 38, 0.98) 0%, rgba(14, 14, 26, 0.99) 100%)',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -322,6 +325,7 @@ function NavItem({ item, isActive, isOpen, onHover, onLeave, onClick, onSubmenuC
                         );
                     })}
                 </div>
+                </>
             )}
         </div>
     );
