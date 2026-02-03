@@ -1,6 +1,6 @@
 {
   "name": "usgrp-override-center",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "USGRP Override Center - Superuser Desktop App",
   "main": "src/main/main.js",
   "author": {
