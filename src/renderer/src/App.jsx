@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import TitleBar from './components/TitleBar';
 import MenuBar from './components/MenuBar';
 import Toolbar from './components/Toolbar';
+import ActivityMonitor, { useActivityTracker } from './components/ActivityMonitor';
 import Dashboard from './pages/Dashboard';
 import Systems from './pages/Systems';
 import ProcessManager from './pages/ProcessManager';
@@ -93,6 +94,10 @@ export default function App() {
     const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
     const [animatedBgEnabled, setAnimatedBgEnabled] = useState(false);
     const [showChangelog, setShowChangelog] = useState(false);
+    const [activityMonitorOpen, setActivityMonitorOpen] = useState(false);
+    
+    // Activity tracking
+    useActivityTracker();
     const [showAbout, setShowAbout] = useState(false);
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonatingUser, setImpersonatingUser] = useState(null);
@@ -423,6 +428,13 @@ export default function App() {
                 onLogout={handleLogout}
                 onChatToggle={() => setChatOpen(!chatOpen)}
                 onImpersonate={() => setShowImpersonate(true)}
+                onActivityMonitor={() => setActivityMonitorOpen(true)}
+            />
+            
+            {/* Activity Monitor */}
+            <ActivityMonitor 
+                isOpen={activityMonitorOpen} 
+                onClose={() => setActivityMonitorOpen(false)} 
             />
             
             {/* Main content area */}

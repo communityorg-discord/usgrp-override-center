@@ -134,7 +134,7 @@ const navigationItems = [
     },
 ];
 
-export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onImpersonate }) {
+export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onImpersonate, onActivityMonitor }) {
     const location = useLocation();
     const [openSubmenu, setOpenSubmenu] = useState(null);
     const [isMobile, setIsMobile] = useState(false);
@@ -238,6 +238,11 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
                         icon="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                         title="Quick User Search (Ctrl+K)"
                         onClick={() => setShowUserSearch(true)}
+                    />
+                    <IconButton 
+                        icon="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        title="Activity Monitor"
+                        onClick={onActivityMonitor}
                     />
                     <IconButton 
                         icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
