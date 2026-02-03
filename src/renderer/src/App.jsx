@@ -4,6 +4,7 @@ import TitleBar from './components/TitleBar';
 import MenuBar from './components/MenuBar';
 import Toolbar from './components/Toolbar';
 import ActivityMonitor, { useActivityTracker } from './components/ActivityMonitor';
+import { useMacFeatures, useDockBadge } from './hooks/useMacFeatures';
 import Dashboard from './pages/Dashboard';
 import Systems from './pages/Systems';
 import ProcessManager from './pages/ProcessManager';
@@ -95,9 +96,15 @@ export default function App() {
     const [animatedBgEnabled, setAnimatedBgEnabled] = useState(false);
     const [showChangelog, setShowChangelog] = useState(false);
     const [activityMonitorOpen, setActivityMonitorOpen] = useState(false);
+    const [pendingAlerts, setPendingAlerts] = useState(0);
     
     // Activity tracking
     useActivityTracker();
+    
+    // Mac features - dock badge for pending alerts
+    const { isMac, bounceDock } = useMacFeatures();
+    useDockBadge(pendingAlerts);
+    
     const [showAbout, setShowAbout] = useState(false);
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonatingUser, setImpersonatingUser] = useState(null);

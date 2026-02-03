@@ -4,10 +4,14 @@
  * Electron main process handling window management, IPC, and system integration.
  */
 
-const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, shell, dialog, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
+
+// Platform detection
+const isMac = process.platform === 'darwin';
+const isWin = process.platform === 'win32';
 const util = require('util');
 const execPromise = util.promisify(exec);
 const Store = require('electron-store');
@@ -174,78 +178,126 @@ function createWindow() {
 // ═══════════════════════════════════════════════════════════════
 
 function createApplicationMenu() {
-    const template = [
-        {
-            label: 'File',
+    const template = [];
+    
+    // macOS app menu (first menu is always app name on Mac)
+    if (isMac) {
+        template.push({
+            label: app.name,
             submenu: [
-                { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => sendToRenderer('navigate', '/settings') },
+                { role: 'about' },
                 { type: 'separator' },
-                { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: () => { app.isQuitting = true; app.quit(); } }
+                { label: 'Settings...', accelerator: 'Cmd+,', click: () => sendToRenderer('navigate', '/settings') },
+                { type: 'separator' },
+                { role: 'services' },
+                { type: 'separator' },
+                { role: 'hide' },
+                { role: 'hideOthers' },
+                { role: 'unhide' },
+                { type: 'separator' },
+                { role: 'quit' }
             ]
-        },
-        {
-            label: 'Edit',
-            submenu: [
-                { role: 'undo' },
-                { role: 'redo' },
+        });
+    }
+    
+    template.push({
+        label: 'File',
+        submenu: [
+            { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => sendToRenderer('navigate', '/settings') },
+            { type: 'separator' },
+            ...(isMac ? [] : [{ label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: () => { app.isQuitting = true; app.quit(); } }])
+        ]
+    });
+    
+    template.push({
+        label: 'Edit',
+        submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            ...(isMac ? [
+                { role: 'pasteAndMatchStyle' },
+                { role: 'delete' },
+                { role: 'selectAll' },
                 { type: 'separator' },
-                { role: 'cut' },
-                { role: 'copy' },
-                { role: 'paste' },
+                {
+                    label: 'Speech',
+                    submenu: [
+                        { role: 'startSpeaking' },
+                        { role: 'stopSpeaking' }
+                    ]
+                }
+            ] : [
+                { role: 'delete' },
+                { type: 'separator' },
                 { role: 'selectAll' }
-            ]
-        },
-        {
-            label: 'View',
-            submenu: [
-                { role: 'reload', accelerator: 'CmdOrCtrl+R' },
-                { role: 'forceReload', accelerator: 'CmdOrCtrl+Shift+R' },
+            ])
+        ]
+    });
+    
+    template.push({
+        label: 'View',
+        submenu: [
+            { role: 'reload', accelerator: 'CmdOrCtrl+R' },
+            { role: 'forceReload', accelerator: 'CmdOrCtrl+Shift+R' },
+            { type: 'separator' },
+            { 
+                label: 'Zoom In', 
+                accelerator: 'CmdOrCtrl+=',
+                click: () => {
+                    const currentZoom = mainWindow.webContents.getZoomFactor();
+                    mainWindow.webContents.setZoomFactor(currentZoom + 0.1);
+                }
+            },
+            { 
+                label: 'Zoom Out', 
+                accelerator: 'CmdOrCtrl+-',
+                click: () => {
+                    const currentZoom = mainWindow.webContents.getZoomFactor();
+                    mainWindow.webContents.setZoomFactor(Math.max(0.5, currentZoom - 0.1));
+                }
+            },
+            { 
+                label: 'Reset Zoom', 
+                accelerator: 'CmdOrCtrl+0',
+                click: () => {
+                    mainWindow.webContents.setZoomFactor(1.0);
+                }
+            },
+            { type: 'separator' },
+            { role: 'togglefullscreen' },
+            { type: 'separator' },
+            { role: 'toggleDevTools', accelerator: 'F12' }
+        ]
+    });
+    
+    template.push({
+        label: 'Window',
+        submenu: [
+            { role: 'minimize' },
+            { role: 'zoom' },
+            ...(isMac ? [
                 { type: 'separator' },
-                { 
-                    label: 'Zoom In', 
-                    accelerator: 'CmdOrCtrl+=',
-                    click: () => {
-                        const currentZoom = mainWindow.webContents.getZoomFactor();
-                        mainWindow.webContents.setZoomFactor(currentZoom + 0.1);
-                    }
-                },
-                { 
-                    label: 'Zoom Out', 
-                    accelerator: 'CmdOrCtrl+-',
-                    click: () => {
-                        const currentZoom = mainWindow.webContents.getZoomFactor();
-                        mainWindow.webContents.setZoomFactor(Math.max(0.5, currentZoom - 0.1));
-                    }
-                },
-                { 
-                    label: 'Reset Zoom', 
-                    accelerator: 'CmdOrCtrl+0',
-                    click: () => {
-                        mainWindow.webContents.setZoomFactor(1.0);
-                    }
-                },
+                { role: 'front' },
                 { type: 'separator' },
-                { role: 'togglefullscreen' },
-                { type: 'separator' },
-                { role: 'toggleDevTools', accelerator: 'F12' }
-            ]
-        },
-        {
-            label: 'Window',
-            submenu: [
-                { role: 'minimize' },
+                { role: 'window' }
+            ] : [
                 { role: 'close' }
-            ]
-        },
-        {
-            label: 'Help',
-            submenu: [
-                { label: 'Check for Updates', click: () => sendToRenderer('trigger-update-check') },
-                { type: 'separator' },
-                { label: 'About', click: () => sendToRenderer('show-about') }
-            ]
-        }
-    ];
+            ])
+        ]
+    });
+    
+    template.push({
+        label: 'Help',
+        submenu: [
+            { label: 'Check for Updates', click: () => sendToRenderer('trigger-update-check') },
+            { type: 'separator' },
+            { label: 'About', click: () => sendToRenderer('show-about') }
+        ]
+    });
     
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
@@ -366,6 +418,68 @@ function registerShortcuts() {
 
 // ═══════════════════════════════════════════════════════════════
 // AUTO UPDATER
+// ═══════════════════════════════════════════════════════════════
+// macOS-SPECIFIC FEATURES
+// ═══════════════════════════════════════════════════════════════
+
+let dockBadgeCount = 0;
+
+function setupMacFeatures() {
+    console.log('[Mac] Setting up macOS-specific features');
+    
+    // 1. System Appearance Sync - watch for dark/light mode changes
+    nativeTheme.on('updated', () => {
+        const isDark = nativeTheme.shouldUseDarkColors;
+        console.log(`[Mac] System appearance changed: ${isDark ? 'dark' : 'light'}`);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('system-theme-changed', { isDark });
+        }
+    });
+    
+    // Send initial theme
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.on('did-finish-load', () => {
+            mainWindow.webContents.send('system-theme-changed', { 
+                isDark: nativeTheme.shouldUseDarkColors 
+            });
+        });
+    }
+    
+    // 2. IPC handlers for Mac features
+    ipcMain.handle('mac:set-dock-badge', (event, count) => {
+        if (!isMac) return { success: false };
+        dockBadgeCount = count;
+        app.dock.setBadge(count > 0 ? String(count) : '');
+        return { success: true };
+    });
+    
+    ipcMain.handle('mac:bounce-dock', (event, type = 'informational') => {
+        if (!isMac) return { success: false };
+        // type: 'critical' (bounces until focused) or 'informational' (bounces once)
+        app.dock.bounce(type);
+        return { success: true };
+    });
+    
+    ipcMain.handle('mac:get-appearance', () => {
+        return {
+            isDark: nativeTheme.shouldUseDarkColors,
+            accent: nativeTheme.shouldUseHighContrastColors ? 'high-contrast' : 'normal'
+        };
+    });
+    
+    ipcMain.handle('mac:show-dock', () => {
+        if (isMac) app.dock.show();
+        return { success: true };
+    });
+    
+    ipcMain.handle('mac:hide-dock', () => {
+        if (isMac) app.dock.hide();
+        return { success: true };
+    });
+    
+    console.log('[Mac] macOS features initialized');
+}
+
 // ═══════════════════════════════════════════════════════════════
 
 function setupAutoUpdater() {
@@ -754,34 +868,63 @@ const CAPTURE_PROCESSES_WIN = [
     'nvcontainer.exe', 'nvidia share.exe', 'gamebar.exe', 'gamebarftserver.exe',
     'loom.exe', 'sharex.exe', 'bandicam.exe', 'bdcam.exe',
     'medal.exe', 'snagit.exe', 'xsplit.core.exe', 'camtasia.exe',
-    // NOT including: discord.exe, zoom.exe, teams.exe (too noisy - always running)
+];
+
+const CAPTURE_PROCESSES_MAC = [
+    'obs', 'streamlabs', 'loom', 'screenflow', 'camtasia',
+    'screencapturekit', 'quicktime player', 'kap', 'cleanshot',
+    'snagit', 'screenflick', 'monosnap'
 ];
 
 async function detectScreenCapture() {
     return new Promise((resolve) => {
         const { exec } = require('child_process');
-        exec('tasklist /fo csv /nh', { maxBuffer: 1024 * 1024 * 5 }, (error, stdout) => {
-            if (error) return resolve([]);
-            const processes = stdout.toLowerCase().split('\n').map(line => {
-                const match = line.match(/"([^"]+)"/);
-                return match ? match[1] : '';
-            }).filter(Boolean);
-            
-            const detected = [];
-            for (const proc of CAPTURE_PROCESSES_WIN) {
-                if (processes.some(p => p.includes(proc.toLowerCase()))) {
-                    let name = proc.replace('.exe', '');
-                    if (proc.includes('obs') || proc.includes('slobs')) name = 'OBS Studio';
-                    else if (proc.includes('nvidia') || proc.includes('gamebar')) name = 'Screen Recorder';
-                    else if (proc.includes('loom')) name = 'Loom';
-                    else if (proc.includes('sharex')) name = 'ShareX';
-                    else if (proc.includes('bandicam') || proc.includes('bdcam')) name = 'Bandicam';
-                    else if (proc.includes('medal')) name = 'Medal.tv';
-                    if (!detected.includes(name)) detected.push(name);
+        const isMac = process.platform === 'darwin';
+        
+        if (isMac) {
+            // macOS: use ps command
+            exec('ps -axo comm', { maxBuffer: 1024 * 1024 * 5 }, (error, stdout) => {
+                if (error) return resolve([]);
+                const processes = stdout.toLowerCase().split('\n').map(l => l.trim()).filter(Boolean);
+                
+                const detected = [];
+                for (const proc of CAPTURE_PROCESSES_MAC) {
+                    if (processes.some(p => p.includes(proc))) {
+                        let name = proc.charAt(0).toUpperCase() + proc.slice(1);
+                        if (proc.includes('obs')) name = 'OBS Studio';
+                        else if (proc.includes('loom')) name = 'Loom';
+                        else if (proc.includes('screenflow')) name = 'ScreenFlow';
+                        else if (proc.includes('quicktime')) name = 'QuickTime';
+                        if (!detected.includes(name)) detected.push(name);
+                    }
                 }
-            }
-            resolve(detected);
-        });
+                resolve(detected);
+            });
+        } else {
+            // Windows: use tasklist
+            exec('tasklist /fo csv /nh', { maxBuffer: 1024 * 1024 * 5 }, (error, stdout) => {
+                if (error) return resolve([]);
+                const processes = stdout.toLowerCase().split('\n').map(line => {
+                    const match = line.match(/"([^"]+)"/);
+                    return match ? match[1] : '';
+                }).filter(Boolean);
+                
+                const detected = [];
+                for (const proc of CAPTURE_PROCESSES_WIN) {
+                    if (processes.some(p => p.includes(proc.toLowerCase()))) {
+                        let name = proc.replace('.exe', '');
+                        if (proc.includes('obs') || proc.includes('slobs')) name = 'OBS Studio';
+                        else if (proc.includes('nvidia') || proc.includes('gamebar')) name = 'Screen Recorder';
+                        else if (proc.includes('loom')) name = 'Loom';
+                        else if (proc.includes('sharex')) name = 'ShareX';
+                        else if (proc.includes('bandicam') || proc.includes('bdcam')) name = 'Bandicam';
+                        else if (proc.includes('medal')) name = 'Medal.tv';
+                        if (!detected.includes(name)) detected.push(name);
+                    }
+                }
+                resolve(detected);
+            });
+        }
     });
 }
 
@@ -1336,6 +1479,11 @@ app.whenReady().then(() => {
     setupAtlasBrainConfig();
     setupAutoUpdater();
     startScreenShareMonitoring(); // Start screen share detection
+    
+    // macOS-specific setup
+    if (isMac) {
+        setupMacFeatures();
+    }
     
     // Check if launched with protocol URL (Windows/Linux)
     const url = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`));

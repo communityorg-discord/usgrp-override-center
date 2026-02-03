@@ -147,6 +147,16 @@ contextBridge.exposeInMainWorld('electron', {
         check: () => ipcRenderer.invoke('screen-share:check')
     },
 
+    // macOS-specific features
+    mac: {
+        setDockBadge: (count) => ipcRenderer.invoke('mac:set-dock-badge', count),
+        bounceDock: (type = 'informational') => ipcRenderer.invoke('mac:bounce-dock', type),
+        getAppearance: () => ipcRenderer.invoke('mac:get-appearance'),
+        showDock: () => ipcRenderer.invoke('mac:show-dock'),
+        hideDock: () => ipcRenderer.invoke('mac:hide-dock'),
+        isMac: process.platform === 'darwin'
+    },
+
     // Script Runner
     scripts: {
         list: () => ipcRenderer.invoke('scripts:list'),
@@ -191,7 +201,8 @@ contextBridge.exposeInMainWorld('electron', {
             'update-error',
             'update-progress',
             'auth-success',
-            'screen-capture-detected'
+            'screen-capture-detected',
+            'system-theme-changed'
         ];
         
         if (allowedChannels.includes(channel)) {
