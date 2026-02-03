@@ -37,42 +37,63 @@ export default function ChangelogModal({ onClose }) {
         
         const changes = [];
         const lines = body.split('\n');
+        let currentSection = '';
         
         for (const line of lines) {
             const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith('#')) continue;
+            if (!trimmed) continue;
+            
+            // Skip header lines and horizontal rules
+            if (trimmed.startsWith('#') || trimmed === '---' || trimmed.startsWith('**Full Changelog')) continue;
+            
+            // Detect section headers (bold text like **Section Name**)
+            const sectionMatch = trimmed.match(/^\*\*(.+?)\*\*$/);
+            if (sectionMatch) {
+                currentSection = sectionMatch[1];
+                continue;
+            }
             
             // Parse markdown list items
-            const match = trimmed.match(/^[-*]\s*\*\*(\w+)\*\*[:\s]*(.+)$/i) ||
-                          trimmed.match(/^[-*]\s*(\w+)[:\s]*(.+)$/i) ||
-                          trimmed.match(/^[-*]\s*(.+)$/);
+            const listMatch = trimmed.match(/^[-*]\s*\*\*(.+?)\*\*\s*[—–-]\s*(.+)$/) ||  // **Bold** — description
+                              trimmed.match(/^[-*]\s*\*\*(.+?)\*\*:\s*(.+)$/) ||           // **Bold**: description
+                              trimmed.match(/^[-*]\s*(.+)$/);                               // - Just text
             
-            if (match) {
-                const typeWord = match[1]?.toLowerCase() || '';
+            if (listMatch) {
+                let text = '';
                 let type = 'added';
-                let text = match[2] || match[1];
                 
-                if (['fix', 'fixed', 'bugfix'].includes(typeWord)) {
-                    type = 'fixed';
-                    text = match[2];
-                } else if (['change', 'changed', 'update', 'updated', 'improve', 'improved'].includes(typeWord)) {
-                    type = 'improved';
-                    text = match[2];
-                } else if (['remove', 'removed', 'delete', 'deleted'].includes(typeWord)) {
-                    type = 'removed';
-                    text = match[2];
-                } else if (['add', 'added', 'new', 'feature'].includes(typeWord)) {
-                    type = 'added';
-                    text = match[2];
+                if (listMatch[2]) {
+                    // Has title and description
+                    text = `**${listMatch[1]}** — ${listMatch[2]}`;
+                } else {
+                    text = listMatch[1];
                 }
                 
-                if (text) {
-                    changes.push({ type, text: text.trim() });
+                // Determine type from keywords
+                const lowerText = text.toLowerCase();
+                if (lowerText.includes('fix') || lowerText.includes('bug')) {
+                    type = 'fixed';
+                } else if (lowerText.includes('improve') || lowerText.includes('update') || lowerText.includes('change') || lowerText.includes('enhance')) {
+                    type = 'improved';
+                } else if (lowerText.includes('remove') || lowerText.includes('delete')) {
+                    type = 'removed';
+                }
+                
+                if (text && text.length > 2) {
+                    // Clean up markdown bold
+                    text = text.replace(/\*\*/g, '');
+                    changes.push({ type, text: text.trim(), section: currentSection });
                 }
             }
         }
         
-        return changes.length > 0 ? changes : [{ type: 'added', text: body.slice(0, 200) }];
+        // If no changes found, just return the body summary
+        if (changes.length === 0 && body.length > 0) {
+            const summary = body.replace(/[#*`]/g, '').slice(0, 300).trim();
+            return [{ type: 'added', text: summary || 'See release notes for details' }];
+        }
+        
+        return changes;
     }
 
     const typeColors = {
