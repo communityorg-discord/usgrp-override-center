@@ -53,6 +53,10 @@ const PAGES = [
     { path: '/ratelimits', label: 'Rate Limits', keywords: ['throttle', 'limits'], emoji: '⏱️' },
     { path: '/apikeys', label: 'API Keys', keywords: ['authentication'], emoji: '🔑' },
     
+    // Support
+    { path: '/tickets', label: 'Ticket Manager', keywords: ['support', 'help'], emoji: '🎫' },
+    { path: '/tickets/kanban', label: 'Ticket Kanban', keywords: ['support', 'board', 'drag'], emoji: '📋' },
+    
     // Tools
     { path: '/deploy', label: 'Deploy', keywords: ['git', 'push', 'release'], emoji: '🚀' },
     { path: '/terminal', label: 'Terminal', keywords: ['shell', 'cli', 'bash'], emoji: '💻' },

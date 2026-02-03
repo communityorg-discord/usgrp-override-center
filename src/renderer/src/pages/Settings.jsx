@@ -28,6 +28,7 @@ export default function Settings() {
         gradientColor2: '#B8860B',
         gradientAngle: 135,
         saturation: 100,
+        animatedBackground: false,
     });
     
     const [user, setUser] = useState(null);
@@ -46,7 +47,7 @@ export default function Settings() {
     async function loadSettings() {
         try {
             const keys = ['themeMode', 'gradientPreset', 'gradientColor1', 'gradientColor2', 
-                         'gradientAngle', 'saturation'];
+                         'gradientAngle', 'saturation', 'animatedBackground'];
             const stored = {};
             for (const key of keys) {
                 const value = await window.electron.store.get(key);
@@ -420,6 +421,28 @@ export default function Settings() {
                             <span className="font-medium text-white">{settings.saturation}%</span>
                             <span>Vivid</span>
                         </div>
+                    </div>
+                </section>
+
+                {/* Effects */}
+                <section className="mb-10">
+                    <h2 className="text-lg font-semibold text-white mb-4">Visual Effects</h2>
+                    <div className="bg-white/5 rounded-xl p-6 space-y-4">
+                        <label className="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span className="text-white font-medium">Animated Background</span>
+                                <p className="text-xs text-gray-500 mt-0.5">Floating particles with gradient connections</p>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.animatedBackground}
+                                    onChange={(e) => updateSetting('animatedBackground', e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
+                            </div>
+                        </label>
                     </div>
                 </section>
 

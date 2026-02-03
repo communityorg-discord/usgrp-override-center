@@ -64,6 +64,9 @@ import EconomyStats from './pages/EconomyStats';
 import BulkWipe from './pages/BulkWipe';
 import AutoModConfig from './pages/AutoModConfig';
 import CommandPalette from './components/CommandPalette';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
+import AnimatedBackground from './components/AnimatedBackground';
+import GlobalSearch from './components/GlobalSearch';
 import FraudDetection from './pages/FraudDetection';
 import RelationshipMapper from './pages/RelationshipMapper';
 import LiveMap from './pages/LiveMap';
@@ -74,6 +77,7 @@ import AtlasBrainConfig from './pages/AtlasBrainConfig';
 import EconomySimulator from './pages/EconomySimulator';
 import JudicialPanel from './pages/JudicialPanel';
 import TicketManager from './pages/TicketManager';
+import TicketKanban from './pages/TicketKanban';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -81,6 +85,9 @@ export default function App() {
     const [isFirstRun, setIsFirstRun] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+    const [animatedBgEnabled, setAnimatedBgEnabled] = useState(false);
     const [showChangelog, setShowChangelog] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
     const [showImpersonate, setShowImpersonate] = useState(false);
@@ -113,6 +120,9 @@ export default function App() {
             const fontSize = await window.electron.store.get('fontSize') || 'normal';
             const reduceMotion = await window.electron.store.get('reduceMotion') || false;
             const compactMode = await window.electron.store.get('compactMode') || false;
+            const animatedBg = await window.electron.store.get('animatedBackground') || false;
+            
+            setAnimatedBgEnabled(animatedBg);
             
             const root = document.documentElement;
             
@@ -256,6 +266,16 @@ export default function App() {
             if (e.ctrlKey && e.key === 'k') {
                 e.preventDefault();
                 setCommandPaletteOpen(prev => !prev);
+            }
+            // Ctrl+Shift+F - Global Search
+            if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                setGlobalSearchOpen(prev => !prev);
+            }
+            // ? - Keyboard Shortcuts (when not typing)
+            if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+                e.preventDefault();
+                setShortcutsOpen(prev => !prev);
             }
             // Ctrl+Shift+T - Terminal
             if (e.ctrlKey && e.shiftKey && e.key === 'T') {
@@ -463,6 +483,7 @@ export default function App() {
                         <Route path="/economy/simulator" element={<EconomySimulator />} />
                         <Route path="/judicial" element={<JudicialPanel />} />
                         <Route path="/tickets" element={<TicketManager />} />
+                        <Route path="/tickets/kanban" element={<TicketKanban />} />
                     </Routes>
                 </main>
 
@@ -502,6 +523,21 @@ export default function App() {
                 isOpen={commandPaletteOpen} 
                 onClose={() => setCommandPaletteOpen(false)} 
             />
+            
+            {/* Global Search */}
+            <GlobalSearch
+                isOpen={globalSearchOpen}
+                onClose={() => setGlobalSearchOpen(false)}
+            />
+            
+            {/* Keyboard Shortcuts */}
+            <KeyboardShortcuts
+                isOpen={shortcutsOpen}
+                onClose={() => setShortcutsOpen(false)}
+            />
+            
+            {/* Animated Background */}
+            <AnimatedBackground enabled={animatedBgEnabled} />
         </div>
     );
 }
