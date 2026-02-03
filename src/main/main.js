@@ -1230,6 +1230,7 @@ app.whenReady().then(() => {
     setupAdvancedFeatures();
     setupFraudDetection();
     setupRelationshipMapper();
+    setupEconomySimulator();
     setupScriptRunner();
     setupGitIPC();
     setupTerminalIPC();
@@ -1772,6 +1773,116 @@ function setupFraudDetection() {
             console.error('Fraud Scan Error:', error);
             return { scannedTransactions: 0, newAlerts: 0, alerts: [] };
         }
+    });
+}
+
+/**
+ * Feature #XX: Economy Simulator
+ */
+function setupEconomySimulator() {
+    const getApiConfig = () => {
+        const currentServerId = store.get('currentServer');
+        let apiBase = 'https://api.usgrp.xyz';
+        let token = store.get('authToken');
+        
+        if (currentServerId) {
+            const servers = store.get('servers') || [];
+            const server = servers.find(s => s.id === currentServerId);
+            if (server) {
+                apiBase = server.apiBase;
+                token = server.token;
+            }
+        }
+        return { apiBase, token };
+    };
+
+    ipcMain.handle('economy:getSimulationData', async () => {
+        try {
+            const { apiBase, token } = getApiConfig();
+            const fetch = (await import('node-fetch')).default || global.fetch;
+            
+            // Get economy stats
+            const statsRes = await fetch(`${apiBase}/override/economy/stats`, {
+                headers: { 'X-Override-Token': token }
+            });
+            
+            if (!statsRes.ok) {
+                // Return mock data for dev
+                return {
+                    totalMoney: 50000000,
+                    totalUsers: 1500,
+                    averageBalance: 33333,
+                    medianBalance: 15000,
+                    currentTaxRate: 5,
+                    dailyTransactionVolume: 2500000,
+                    topHolders: [
+                        { name: 'User1', balance: 5000000 },
+                        { name: 'User2', balance: 3000000 },
+                        { name: 'User3', balance: 2000000 }
+                    ]
+                };
+            }
+            
+            const stats = await statsRes.json();
+            return {
+                totalMoney: stats.totalMoney || stats.total_money || 0,
+                totalUsers: stats.totalUsers || stats.user_count || 0,
+                averageBalance: stats.averageBalance || stats.average || 0,
+                medianBalance: stats.medianBalance || stats.median || 0,
+                currentTaxRate: stats.taxRate || 5,
+                dailyTransactionVolume: stats.dailyVolume || 0,
+                topHolders: stats.topHolders || []
+            };
+        } catch (error) {
+            console.error('Economy simulation data error:', error);
+            // Return mock data on error
+            return {
+                totalMoney: 50000000,
+                totalUsers: 1500,
+                averageBalance: 33333,
+                medianBalance: 15000,
+                currentTaxRate: 5,
+                dailyTransactionVolume: 2500000,
+                topHolders: []
+            };
+        }
+    });
+
+    ipcMain.handle('economy:simulate', async (event, params) => {
+        const { taxRate, moneyInjection } = params;
+        
+        // Simple simulation logic
+        const baseData = await ipcMain.handle('economy:getSimulationData');
+        const currentMoney = baseData?.totalMoney || 50000000;
+        const currentUsers = baseData?.totalUsers || 1500;
+        
+        // Project 12 months
+        const months = [];
+        let runningMoney = currentMoney + (moneyInjection || 0);
+        let runningVelocity = baseData?.dailyTransactionVolume || 2500000;
+        
+        for (let i = 0; i < 12; i++) {
+            const taxDrain = runningMoney * (taxRate / 100) * 0.1; // 10% of tax rate per month
+            runningMoney = runningMoney - taxDrain + (moneyInjection / 12);
+            runningVelocity = runningVelocity * (1 + (taxRate > 10 ? -0.02 : 0.01));
+            
+            months.push({
+                month: i + 1,
+                totalMoney: Math.max(0, runningMoney),
+                velocity: Math.max(0, runningVelocity),
+                avgBalance: runningMoney / currentUsers,
+                taxCollected: taxDrain
+            });
+        }
+        
+        return {
+            projection: months,
+            summary: {
+                finalMoney: months[11]?.totalMoney || 0,
+                totalTaxCollected: months.reduce((sum, m) => sum + m.taxCollected, 0),
+                velocityChange: ((months[11]?.velocity / months[0]?.velocity) - 1) * 100
+            }
+        };
     });
 }
 

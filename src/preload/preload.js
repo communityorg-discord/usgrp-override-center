@@ -124,6 +124,12 @@ contextBridge.exposeInMainWorld('electron', {
         get: (filters) => ipcRenderer.invoke('relationships:get', filters)
     },
 
+    // Economy Simulator
+    economy: {
+        getSimulationData: () => ipcRenderer.invoke('economy:getSimulationData'),
+        simulate: (params) => ipcRenderer.invoke('economy:simulate', params)
+    },
+
     // Script Runner
     scripts: {
         list: () => ipcRenderer.invoke('scripts:list'),
