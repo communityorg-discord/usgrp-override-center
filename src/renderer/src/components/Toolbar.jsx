@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 // Navigation structure with grouped submenus
 const navigationItems = [
@@ -8,27 +8,23 @@ const navigationItems = [
         label: 'Dashboard',
         icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
         path: '/',
-        emoji: '📊'
     },
     {
         id: 'health',
         label: 'Health',
         icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
         path: '/health',
-        emoji: '❤️'
     },
     {
         id: 'activity',
         label: 'Activity',
         icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
         path: '/activity',
-        emoji: '📊'
     },
     {
         id: 'systems',
         label: 'Systems',
         icon: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01',
-        emoji: '🖥️',
         submenu: [
             { path: '/servers', label: 'Servers', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
             { path: '/processes', label: 'Processes', icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
@@ -43,7 +39,6 @@ const navigationItems = [
         id: 'economy',
         label: 'Economy',
         icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-        emoji: '💰',
         submenu: [
             { path: '/economy/users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
             { path: '/economy/money', label: 'Money Editor', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
@@ -63,7 +58,6 @@ const navigationItems = [
         id: 'moderation',
         label: 'Moderation',
         icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
-        emoji: '⚖️',
         submenu: [
             { path: '/moderation/cases', label: 'Cases', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
             { path: '/moderation/actions', label: 'Quick Actions', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
@@ -77,7 +71,6 @@ const navigationItems = [
         id: 'government',
         label: 'Government',
         icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-        emoji: '🏛️',
         submenu: [
             { path: '/government/positions', label: 'Positions', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
             { path: '/discord', label: 'Discord Mgmt', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
@@ -88,7 +81,6 @@ const navigationItems = [
         id: 'security',
         label: 'Security',
         icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-        emoji: '🔐',
         submenu: [
             { path: '/dns', label: 'DNS', icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z' },
             { path: '/ssl', label: 'SSL', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
@@ -101,7 +93,6 @@ const navigationItems = [
         id: 'tools',
         label: 'Tools',
         icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
-        emoji: '🛠️',
         submenu: [
             { path: '/deploy', label: 'Deploy', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
             { path: '/terminal', label: 'Terminal', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
@@ -115,7 +106,6 @@ const navigationItems = [
         id: 'data',
         label: 'Data',
         icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4',
-        emoji: '📁',
         submenu: [
             { path: '/files', label: 'Files', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
             { path: '/config', label: 'Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
@@ -131,7 +121,6 @@ const navigationItems = [
         label: 'Settings',
         icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
         path: '/settings',
-        emoji: '⚙️'
     },
 ];
 
@@ -139,6 +128,7 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
     const location = useLocation();
     const [openSubmenu, setOpenSubmenu] = useState(null);
     const [isMobile, setIsMobile] = useState(false);
+    const [showUserSearch, setShowUserSearch] = useState(false);
     const toolbarRef = useRef(null);
     
     // Detect mobile
@@ -158,6 +148,21 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Keyboard shortcut for search (Ctrl+K)
+    useEffect(() => {
+        function handleKeyDown(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowUserSearch(true);
+            }
+            if (e.key === 'Escape') {
+                setShowUserSearch(false);
+            }
+        }
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
     
     // Check if any submenu item is active
@@ -216,6 +221,12 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
                 
                 {/* Quick Action Buttons */}
                 <div className="flex items-center gap-0.5 pr-3 mr-2 border-r border-white/[0.06]">
+                    {/* Quick User Search Button */}
+                    <IconButton 
+                        icon="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        title="Quick User Search (Ctrl+K)"
+                        onClick={() => setShowUserSearch(true)}
+                    />
                     <IconButton 
                         icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                         title="Impersonate User"
@@ -244,6 +255,238 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
                 {/* Profile */}
                 <ProfileButton user={user} onLogout={onLogout} />
             </div>
+
+            {/* Quick User Search Modal */}
+            {showUserSearch && (
+                <QuickUserSearch onClose={() => setShowUserSearch(false)} />
+            )}
+        </div>
+    );
+}
+
+// Quick User Search Modal Component
+function QuickUserSearch({ onClose }) {
+    const navigate = useNavigate();
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const inputRef = useRef(null);
+    const modalRef = useRef(null);
+
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (modalRef.current && !modalRef.current.contains(e.target)) {
+                onClose();
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
+
+    async function handleSearch(e) {
+        e?.preventDefault();
+        if (!query.trim()) return;
+        
+        setLoading(true);
+        setError(null);
+        setResults(null);
+
+        try {
+            const apiBase = await window.electron.api.getBase();
+            const token = await window.electron.api.getToken();
+            
+            const response = await fetch(`${apiBase}/override/users/unified/${query}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Override-Token': token
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || data.error || 'User not found');
+            }
+            
+            setResults(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function navigateToLookup() {
+        onClose();
+        navigate(`/users/lookup?id=${query}`);
+    }
+
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('en-US', { 
+            style: 'currency', 
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0 
+        }).format(amount || 0);
+    }
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-24 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div 
+                ref={modalRef}
+                className="w-full max-w-lg bg-[#0d0d14] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-slide-up"
+                style={{ boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6)' }}
+            >
+                {/* Search Header */}
+                <form onSubmit={handleSearch} className="flex items-center gap-3 p-4 border-b border-white/[0.06]">
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Enter Discord ID or username..."
+                        className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none text-lg font-mono"
+                    />
+                    <button 
+                        type="submit"
+                        disabled={loading || !query.trim()}
+                        className="px-4 py-1.5 bg-amber-500/20 text-amber-400 rounded-lg text-sm font-medium hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+                    >
+                        {loading ? 'Searching...' : 'Search'}
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={onClose}
+                        className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </form>
+
+                {/* Results Area */}
+                <div className="max-h-[400px] overflow-y-auto">
+                    {loading && (
+                        <div className="p-8 text-center">
+                            <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p className="text-gray-500 mt-3 text-sm">Searching databases...</p>
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="p-6">
+                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                {error}
+                            </div>
+                        </div>
+                    )}
+
+                    {results && !loading && (
+                        <div className="p-4 space-y-4">
+                            {/* User Header */}
+                            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                {results.discord?.avatar ? (
+                                    <img 
+                                        src={`https://cdn.discordapp.com/avatars/${results.discordId}/${results.discord.avatar}.png?size=64`}
+                                        className="w-12 h-12 rounded-full border-2 border-amber-500/30"
+                                        alt=""
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 text-lg font-bold">
+                                        {results.discord?.username?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <p className="font-bold text-white">{results.discord?.displayName || results.discord?.username || 'Unknown User'}</p>
+                                    <p className="text-xs text-gray-500 font-mono">{results.discordId}</p>
+                                </div>
+                                <button
+                                    onClick={navigateToLookup}
+                                    className="px-3 py-1.5 text-xs font-medium text-amber-400 bg-amber-500/10 rounded-lg hover:bg-amber-500/20 transition-colors"
+                                >
+                                    Full Details →
+                                </button>
+                            </div>
+
+                            {/* Quick Stats Grid */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {/* Economy */}
+                                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                    <p className="text-[10px] text-emerald-400 uppercase font-medium mb-1">💰 Wealth</p>
+                                    {results.economy && !results.economy.error ? (
+                                        <p className="text-lg font-mono text-emerald-400">{formatMoney(results.economy.totalWealth)}</p>
+                                    ) : (
+                                        <p className="text-sm text-gray-500">No data</p>
+                                    )}
+                                </div>
+
+                                {/* Mod Cases */}
+                                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                                    <p className="text-[10px] text-red-400 uppercase font-medium mb-1">⚖️ Cases</p>
+                                    {results.moderation && !results.moderation.error ? (
+                                        <p className="text-lg font-mono text-red-400">{results.moderation.totalCases || 0}</p>
+                                    ) : (
+                                        <p className="text-sm text-gray-500">No data</p>
+                                    )}
+                                </div>
+
+                                {/* Roles */}
+                                <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                    <p className="text-[10px] text-blue-400 uppercase font-medium mb-1">🎭 Roles</p>
+                                    <p className="text-lg font-mono text-blue-400">{results.discord?.roles?.length || 0}</p>
+                                </div>
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="flex gap-2">
+                                <Link
+                                    to={`/economy/money?id=${results.discordId}`}
+                                    onClick={onClose}
+                                    className="flex-1 px-3 py-2 text-center text-sm font-medium text-emerald-400 bg-emerald-500/10 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                                >
+                                    Edit Economy
+                                </Link>
+                                <Link
+                                    to={`/moderation/cases?userId=${results.discordId}`}
+                                    onClick={onClose}
+                                    className="flex-1 px-3 py-2 text-center text-sm font-medium text-red-400 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors"
+                                >
+                                    View Cases
+                                </Link>
+                                <Link
+                                    to={`/discord?userId=${results.discordId}`}
+                                    onClick={onClose}
+                                    className="flex-1 px-3 py-2 text-center text-sm font-medium text-blue-400 bg-blue-500/10 rounded-lg hover:bg-blue-500/20 transition-colors"
+                                >
+                                    Manage Roles
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
+                    {!loading && !error && !results && (
+                        <div className="p-8 text-center">
+                            <p className="text-gray-500 text-sm">Enter a Discord ID or username to search</p>
+                            <p className="text-gray-600 text-xs mt-2">Press Enter to search</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-2 border-t border-white/[0.06] bg-white/[0.02] flex items-center justify-between text-xs text-gray-600">
+                    <span>Press <kbd className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500">Esc</kbd> to close</span>
+                    <span>Searches Economy, Moderation, and Discord</span>
+                </div>
+            </div>
         </div>
     );
 }
@@ -267,7 +510,6 @@ function NavItem({ item, isActive, isOpen, onHover, onLeave, onClick, onSubmenuC
                     boxShadow: isActive ? 'inset 0 0 0 1px rgba(212, 175, 55, 0.15)' : undefined,
                 }}
             >
-                <span className="text-base">{item.emoji}</span>
                 <span>{item.label}</span>
             </Link>
         );
@@ -288,7 +530,7 @@ function NavItem({ item, isActive, isOpen, onHover, onLeave, onClick, onSubmenuC
                         : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
                 }`}
             >
-                <span className="text-base">{item.emoji}</span>
+                <span>{item.label}</span>
                 <span>{item.label}</span>
                 <svg 
                     className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}

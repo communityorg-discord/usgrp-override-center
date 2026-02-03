@@ -46,6 +46,23 @@ export default function UserLookup() {
         return new Date(dateStr).toLocaleString();
     }
 
+    // Helper to check if economy data exists and is valid
+    function hasEconomyData(economy) {
+        if (!economy) return false;
+        if (economy.error) return false;
+        // Check if it's an empty response (no meaningful data)
+        const hasBalance = economy.balance !== undefined && economy.balance !== null;
+        const hasBankBalance = economy.bankBalance !== undefined && economy.bankBalance !== null;
+        return hasBalance || hasBankBalance;
+    }
+
+    // Helper to check if moderation data exists and is valid
+    function hasModerationData(moderation) {
+        if (!moderation) return false;
+        if (moderation.error) return false;
+        return true;
+    }
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
@@ -128,11 +145,15 @@ export default function UserLookup() {
                             <div className="space-y-3">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Total Wealth</span>
-                                    <span className="text-emerald-400 font-mono font-bold">{formatMoney(userData.economy?.totalWealth)}</span>
+                                    <span className="text-emerald-400 font-mono font-bold">
+                                        {hasEconomyData(userData.economy) ? formatMoney(userData.economy?.totalWealth) : '—'}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Credit Score</span>
-                                    <span className="text-white font-mono">{userData.economy?.creditScore || 'N/A'}</span>
+                                    <span className="text-white font-mono">
+                                        {hasEconomyData(userData.economy) ? (userData.economy?.creditScore || 'N/A') : '—'}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Mod Points</span>
@@ -146,8 +167,16 @@ export default function UserLookup() {
                     <div className="space-y-6">
                         <div className="card">
                             <h2 className="heading-md text-white mb-4">Economy Assets</h2>
-                            {!userData.economy || userData.economy.error ? (
-                                <p className="text-gray-500">No economy data found.</p>
+                            {!hasEconomyData(userData.economy) ? (
+                                <div className="py-8 text-center">
+                                    <div className="w-12 h-12 rounded-full bg-gray-800/50 flex items-center justify-center mx-auto mb-3">
+                                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-gray-500 text-sm">No economy profile</p>
+                                    <p className="text-gray-600 text-xs mt-1">This user hasn't interacted with the economy system yet.</p>
+                                </div>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-2">
@@ -171,14 +200,40 @@ export default function UserLookup() {
 
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase mb-2">Properties ({userData.economy.properties?.length || 0})</p>
-                                        <div className="space-y-1">
-                                            {userData.economy.properties?.slice(0, 3).map((p, i) => (
-                                                <div key={i} className="flex justify-between text-sm">
-                                                    <span className="text-gray-300">{p.name || p.property_type}</span>
-                                                    <span className="text-emerald-400 font-mono">{formatMoney(p.value)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        {userData.economy.properties?.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {userData.economy.properties?.slice(0, 3).map((p, i) => (
+                                                    <div key={i} className="flex justify-between text-sm">
+                                                        <span className="text-gray-300">{p.name || p.property_type}</span>
+                                                        <span className="text-emerald-400 font-mono">{formatMoney(p.value)}</span>
+                                                    </div>
+                                                ))}
+                                                {userData.economy.properties.length > 3 && (
+                                                    <p className="text-xs text-gray-600 mt-2">+{userData.economy.properties.length - 3} more properties</p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-600 italic">No properties owned</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase mb-2">Vehicles ({userData.economy.vehicles?.length || 0})</p>
+                                        {userData.economy.vehicles?.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {userData.economy.vehicles?.slice(0, 3).map((v, i) => (
+                                                    <div key={i} className="flex justify-between text-sm">
+                                                        <span className="text-gray-300">{v.name || v.vehicle_type}</span>
+                                                        <span className="text-blue-400 font-mono">{formatMoney(v.value)}</span>
+                                                    </div>
+                                                ))}
+                                                {userData.economy.vehicles.length > 3 && (
+                                                    <p className="text-xs text-gray-600 mt-2">+{userData.economy.vehicles.length - 3} more vehicles</p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-600 italic">No vehicles owned</p>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -199,8 +254,16 @@ export default function UserLookup() {
                     {/* Right Column: Moderation */}
                     <div className="card">
                         <h2 className="heading-md text-white mb-4">Moderation History</h2>
-                        {!userData.moderation || userData.moderation.error ? (
-                            <p className="text-gray-500">No moderation data found.</p>
+                        {!hasModerationData(userData.moderation) ? (
+                            <div className="py-8 text-center">
+                                <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+                                    <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <p className="text-emerald-400 font-medium">Clean Record</p>
+                                <p className="text-gray-600 text-xs mt-1">No moderation actions on file.</p>
+                            </div>
                         ) : (
                             <div className="space-y-4">
                                 <div className="flex gap-4">
