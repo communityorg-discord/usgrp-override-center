@@ -89,7 +89,7 @@ export default function Settings() {
 
     useEffect(() => {
         applyTheme();
-    }, [settings.theme, settings.accentColor, settings.backgroundTint, settings.saturation, settings.fontFamily, settings.fontSize]);
+    }, [settings.theme, settings.accentColor, settings.backgroundTint, settings.saturation, settings.fontFamily, settings.fontSize, settings.reduceMotion, settings.compactMode]);
 
     async function loadSettings() {
         try {

@@ -389,11 +389,138 @@ function setupAutoUpdater() {
         sendToRenderer('update-progress', progress);
     });
     
-    // Check for updates on startup (in production)
+    // Auto-check for updates on startup using custom GitHub checker
     if (!isDev) {
-        setTimeout(() => {
-            autoUpdater.checkForUpdatesAndNotify();
-        }, 3000); // Delay 3s to let app finish loading
+        setTimeout(async () => {
+            try {
+                console.log('[AutoUpdate] Checking for updates on startup...');
+                await checkAndAutoDownload();
+            } catch (e) {
+                console.error('[AutoUpdate] Startup check failed:', e.message);
+            }
+        }, 3000);
+    }
+}
+
+// Auto-check and auto-download on startup
+async function checkAndAutoDownload() {
+    try {
+        sendToRenderer('update-checking', {});
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(
+            'https://api.github.com/repos/communityorg-discord/usgrp-override-center/releases/latest',
+            { 
+                signal: controller.signal,
+                headers: { 'Accept': 'application/vnd.github.v3+json' }
+            }
+        );
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            console.log('[AutoUpdate] GitHub API error:', response.status);
+            return;
+        }
+        
+        const release = await response.json();
+        const latestVersion = release.tag_name.replace('v', '');
+        const currentVersion = app.getVersion();
+        
+        console.log(`[AutoUpdate] Current: ${currentVersion}, Latest: ${latestVersion}`);
+        
+        // Compare versions
+        const partsA = latestVersion.split('.').map(Number);
+        const partsB = currentVersion.split('.').map(Number);
+        let isNewer = false;
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            const numA = partsA[i] || 0;
+            const numB = partsB[i] || 0;
+            if (numA > numB) { isNewer = true; break; }
+            if (numA < numB) break;
+        }
+        
+        if (isNewer) {
+            console.log('[AutoUpdate] New version found, starting auto-download...');
+            
+            const exeAsset = release.assets.find(a => a.name.endsWith('.exe') && a.name.includes('Setup'));
+            if (!exeAsset) {
+                console.log('[AutoUpdate] No installer found in release');
+                return;
+            }
+            
+            // Store for later and notify
+            global.pendingUpdate = {
+                version: latestVersion,
+                downloadUrl: exeAsset.browser_download_url,
+                fileName: exeAsset.name
+            };
+            
+            sendToRenderer('update-available', {
+                version: latestVersion,
+                releaseNotes: release.body,
+                downloadUrl: exeAsset.browser_download_url,
+                fileName: exeAsset.name,
+                fileSize: exeAsset.size,
+                autoDownloading: true
+            });
+            
+            // Auto-download
+            const tempPath = path.join(app.getPath('temp'), exeAsset.name);
+            console.log(`[AutoUpdate] Downloading to: ${tempPath}`);
+            
+            const https = require('https');
+            const fs = require('fs');
+            
+            await new Promise((resolve, reject) => {
+                function download(url) {
+                    https.get(url, { headers: { 'User-Agent': 'USGRP-Updater' } }, (res) => {
+                        if (res.statusCode === 302 || res.statusCode === 301) {
+                            download(res.headers.location);
+                            return;
+                        }
+                        
+                        if (res.statusCode !== 200) {
+                            reject(new Error(`Download failed: ${res.statusCode}`));
+                            return;
+                        }
+                        
+                        const totalSize = parseInt(res.headers['content-length'] || '0', 10);
+                        let downloaded = 0;
+                        const file = fs.createWriteStream(tempPath);
+                        
+                        res.on('data', (chunk) => {
+                            downloaded += chunk.length;
+                            const percent = totalSize > 0 ? Math.round((downloaded / totalSize) * 100) : 0;
+                            sendToRenderer('update-progress', { percent, downloaded, total: totalSize });
+                        });
+                        
+                        res.pipe(file);
+                        
+                        file.on('finish', () => {
+                            file.close();
+                            console.log('[AutoUpdate] Download complete');
+                            global.pendingUpdatePath = tempPath;
+                            sendToRenderer('update-downloaded', { version: latestVersion, path: tempPath });
+                            resolve();
+                        });
+                        
+                        file.on('error', (err) => {
+                            fs.unlink(tempPath, () => {});
+                            reject(err);
+                        });
+                    }).on('error', reject);
+                }
+                download(exeAsset.browser_download_url);
+            });
+            
+        } else {
+            console.log('[AutoUpdate] App is up to date');
+            // Don't send update-not-available on startup to avoid UI noise
+        }
+    } catch (error) {
+        console.error('[AutoUpdate] Check failed:', error.message);
     }
 }
 
