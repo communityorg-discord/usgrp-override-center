@@ -268,22 +268,28 @@ function stopMonitoring() {
  * Setup IPC handlers
  */
 function setupScreenShareDetection(window) {
+    console.log('[ScreenShare] Setting up IPC handlers...');
     mainWindow = window;
     
     ipcMain.handle('screen-share:start', () => {
+        console.log('[ScreenShare] IPC: start called');
         startMonitoring(window);
         return { success: true };
     });
     
     ipcMain.handle('screen-share:stop', () => {
+        console.log('[ScreenShare] IPC: stop called');
         stopMonitoring();
         return { success: true };
     });
     
     ipcMain.handle('screen-share:check', async () => {
+        console.log('[ScreenShare] IPC: check called');
         const apps = await detectScreenCapture();
         return { detected: apps.length > 0, apps };
     });
+    
+    console.log('[ScreenShare] IPC handlers registered');
     
     // Auto-start monitoring
     startMonitoring(window);
