@@ -525,6 +525,173 @@ async function checkAndAutoDownload() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SCRIPT RUNNER
+// ═══════════════════════════════════════════════════════════════
+
+function setupScriptRunner() {
+    const SCRIPTS_ROOT = '/home/vpcommunityorganisation/CO-Economy-Bot';
+    const CUSTOM_SCRIPTS_DIR = path.join(SCRIPTS_ROOT, 'scripts');
+
+    ipcMain.handle('scripts:list', async () => {
+        try {
+            // Read root scripts
+            const rootFiles = await fs.promises.readdir(SCRIPTS_ROOT);
+            const rootScripts = rootFiles.filter(f => f.endsWith('.js') && !f.startsWith('node_modules'));
+            
+            // Read custom scripts
+            let customScripts = [];
+            try {
+                const customFiles = await fs.promises.readdir(CUSTOM_SCRIPTS_DIR);
+                customScripts = customFiles.filter(f => f.endsWith('.js'));
+            } catch (e) {
+                // scripts dir might not exist
+            }
+
+            const allScripts = [];
+            const scriptStats = store.get('scriptStats') || {};
+
+            // Helper to process files
+            const processFile = async (filename, dir, type) => {
+                const fullPath = path.join(dir, filename);
+                let stats;
+                try {
+                    stats = await fs.promises.stat(fullPath);
+                } catch (e) {
+                    return null;
+                }
+
+                // Read first 5 lines for description
+                let content = '';
+                try {
+                    content = await fs.promises.readFile(fullPath, 'utf8');
+                } catch (e) {
+                    content = '';
+                }
+                
+                const lines = content.split('\n').slice(0, 10);
+                let description = 'No description';
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if ((trimmed.startsWith('//') || trimmed.startsWith('/*')) && !trimmed.includes('eslint') && !trimmed.includes('ts-check')) {
+                        description = trimmed.replace(/^\/\/\s*/, '').replace(/^\/\*\s*/, '').replace(/\*\//, '').trim();
+                        break;
+                    }
+                }
+                
+                return {
+                    name: filename,
+                    path: fullPath,
+                    type, // 'root' or 'custom'
+                    description,
+                    content, // Send content for editor
+                    lastRun: scriptStats[fullPath]?.lastRun || null,
+                    lastModified: stats.mtime
+                };
+            };
+
+            for (const f of rootScripts) {
+                // Filter out common config files and non-scripts
+                if (['package.json', 'package-lock.json', 'ecosystem.config.js', 'jest.config.js', 'postcss.config.js', 'tailwind.config.js'].includes(f)) continue;
+                const s = await processFile(f, SCRIPTS_ROOT, 'root');
+                if (s) allScripts.push(s);
+            }
+            for (const f of customScripts) {
+                const s = await processFile(f, CUSTOM_SCRIPTS_DIR, 'custom');
+                if (s) allScripts.push(s);
+            }
+
+            return allScripts;
+        } catch (error) {
+            console.error('Script list error:', error);
+            return [];
+        }
+    });
+
+    ipcMain.handle('scripts:run', async (event, scriptPath, dryRun) => {
+        // if (!store.get('authToken')) throw new Error('Unauthorized'); // Disable auth check for local dev/demo
+        
+        console.log(`[ScriptRunner] Running: ${scriptPath} (DryRun: ${dryRun})`);
+
+        const scriptStats = store.get('scriptStats') || {};
+        scriptStats[scriptPath] = { lastRun: new Date().toISOString() };
+        store.set('scriptStats', scriptStats);
+
+        return new Promise((resolve, reject) => {
+            const cmd = 'node';
+            const args = [scriptPath];
+            // Pass dry run as arg if supported, and env var
+            if (dryRun) {
+                args.push('--dry-run');
+            }
+
+            const env = { 
+                ...process.env, 
+                DRY_RUN: dryRun ? 'true' : 'false', 
+                FORCE_COLOR: '1',
+                // Add DB credentials if needed, or rely on .env in CWD
+            };
+
+            const proc = require('child_process').spawn(cmd, args, {
+                env,
+                cwd: path.dirname(scriptPath), // execute in script's dir to find .env
+                shell: true
+            });
+
+            proc.stdout.on('data', (data) => {
+                if (event.sender && !event.sender.isDestroyed()) {
+                    event.sender.send('scripts:output', { type: 'stdout', text: data.toString() });
+                }
+            });
+
+            proc.stderr.on('data', (data) => {
+                if (event.sender && !event.sender.isDestroyed()) {
+                    event.sender.send('scripts:output', { type: 'stderr', text: data.toString() });
+                }
+            });
+
+            proc.on('close', (code) => {
+                resolve({ code });
+            });
+
+            proc.on('error', (err) => {
+                reject(err);
+            });
+        });
+    });
+
+    ipcMain.handle('scripts:save', async (event, name, content) => {
+        // if (!store.get('authToken')) throw new Error('Unauthorized');
+        
+        let targetPath;
+        // Check if name is full path
+        if (name.startsWith('/')) {
+            targetPath = name;
+        } else {
+            targetPath = path.join(CUSTOM_SCRIPTS_DIR, name);
+        }
+
+        // Security check: must be in SCRIPTS_ROOT
+        if (!targetPath.startsWith(SCRIPTS_ROOT)) {
+            throw new Error('Access denied: Outside script root');
+        }
+
+        // Ensure dir exists
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+        
+        await fs.promises.writeFile(targetPath, content, 'utf8');
+        return true;
+    });
+    
+    ipcMain.handle('scripts:upload', async (event, name, content) => {
+         // Same as save
+         const targetPath = path.join(CUSTOM_SCRIPTS_DIR, name);
+         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+         await fs.promises.writeFile(targetPath, content, 'utf8');
+         return true;
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TERMINAL HANDLERS
 // ═══════════════════════════════════════════════════════════════
 
@@ -1054,6 +1221,10 @@ app.whenReady().then(() => {
     registerShortcuts();
     setupIPC();
     setupAdvancedFeatures();
+    setupFraudDetection();
+    setupRelationshipMapper();
+    setupScriptRunner();
+    setupGitIPC();
     setupTerminalIPC();
     setupAutoUpdater();
     
@@ -1088,6 +1259,128 @@ if (isDev) {
     app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
         event.preventDefault();
         callback(true);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GIT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+function setupGitIPC() {
+    const simpleGit = require('simple-git');
+
+    ipcMain.handle('git:listRepos', async () => {
+        try {
+            const searchPath = isDev ? path.join(app.getPath('home'), 'projects') : '/srv/usgrp';
+            // Find directories containing .git
+            // deep: 3 usually enough for /srv/usgrp/repo/.git
+            const gitDirs = await fg(path.join(searchPath, '**/.git'), { deep: 3, onlyDirectories: true, ignore: ['**/node_modules/**'] });
+            
+            const repos = await Promise.all(gitDirs.map(async (gitDir) => {
+                const repoPath = path.dirname(gitDir);
+                try {
+                    const git = simpleGit(repoPath);
+                    const [remotes, branch] = await Promise.all([
+                        git.getRemotes(true),
+                        git.branchLocal()
+                    ]);
+                    
+                    return {
+                        path: repoPath,
+                        name: path.basename(repoPath),
+                        branch: branch.current,
+                        remotes: remotes
+                    };
+                } catch (e) {
+                    return null;
+                }
+            }));
+            
+            // Deduplicate by path
+            const uniqueRepos = Array.from(new Map(repos.filter(r => r !== null).map(r => [r.path, r])).values());
+            return uniqueRepos;
+        } catch (error) {
+            console.error('Git list error:', error);
+            return [];
+        }
+    });
+
+    ipcMain.handle('git:status', async (event, repoPath) => {
+        const git = simpleGit(repoPath);
+        return await git.status();
+    });
+
+    ipcMain.handle('git:branches', async (event, repoPath) => {
+        const git = simpleGit(repoPath);
+        return await git.branch();
+    });
+
+    ipcMain.handle('git:checkout', async (event, repoPath, branch) => {
+        const git = simpleGit(repoPath);
+        await git.checkout(branch);
+        return true;
+    });
+
+    ipcMain.handle('git:createBranch', async (event, repoPath, branch) => {
+        const git = simpleGit(repoPath);
+        await git.checkoutLocalBranch(branch);
+        return true;
+    });
+
+    ipcMain.handle('git:deleteBranch', async (event, repoPath, branch) => {
+        const git = simpleGit(repoPath);
+        await git.deleteLocalBranch(branch);
+        return true;
+    });
+
+    ipcMain.handle('git:pull', async (event, repoPath) => {
+        const git = simpleGit(repoPath);
+        return await git.pull();
+    });
+
+    ipcMain.handle('git:push', async (event, repoPath) => {
+        const git = simpleGit(repoPath);
+        return await git.push();
+    });
+
+    ipcMain.handle('git:stage', async (event, repoPath, files) => {
+        const git = simpleGit(repoPath);
+        if (files === '.') await git.add('.');
+        else await git.add(files);
+        return true;
+    });
+
+    ipcMain.handle('git:unstage', async (event, repoPath, files) => {
+        const git = simpleGit(repoPath);
+        if (files === '.') await git.reset(['HEAD']); 
+        else await git.reset(['HEAD', ...files]);
+        return true;
+    });
+
+    ipcMain.handle('git:commit', async (event, repoPath, message) => {
+        const git = simpleGit(repoPath);
+        return await git.commit(message);
+    });
+
+    ipcMain.handle('git:log', async (event, repoPath) => {
+        const git = simpleGit(repoPath);
+        return await git.log({ maxCount: 50 });
+    });
+
+    ipcMain.handle('git:diff', async (event, repoPath, file) => {
+        const git = simpleGit(repoPath);
+        if (file) return await git.diff([file]);
+        return await git.diff();
+    });
+
+    ipcMain.handle('git:reset', async (event, repoPath, mode, commit) => {
+        const git = simpleGit(repoPath);
+        if (commit) {
+             await git.reset([mode === 'hard' ? '--hard' : '--mixed', commit]);
+        } else {
+             await git.reset(mode);
+        }
+        return true;
     });
 }
 
@@ -1312,3 +1605,411 @@ function setupAlertWatcher() {
         }
     }, 60000);
 }
+
+/**
+ * Fraud Detection Logic
+ * Feature #13 implementation
+ */
+function setupFraudDetection() {
+    ipcMain.handle('fraud:getAlerts', () => {
+        return store.get('fraudAlerts') || [];
+    });
+
+    ipcMain.handle('fraud:updateAlert', (event, id, data) => {
+        const alerts = store.get('fraudAlerts') || [];
+        const index = alerts.findIndex(a => a.id === id);
+        if (index !== -1) {
+            alerts[index] = { ...alerts[index], ...data, updatedAt: new Date().toISOString() };
+            store.set('fraudAlerts', alerts);
+            return alerts[index];
+        }
+        return null;
+    });
+
+    ipcMain.handle('fraud:scan', async () => {
+        try {
+            // Helper to get base and token
+            const currentServerId = store.get('currentServer');
+            let apiBase = 'https://api.usgrp.xyz';
+            let token = store.get('authToken');
+            
+            if (currentServerId) {
+                const servers = store.get('servers') || [];
+                const server = servers.find(s => s.id === currentServerId);
+                if (server) {
+                    apiBase = server.apiBase;
+                    token = server.token;
+                }
+            }
+
+            const fetch = (await import('node-fetch')).default || global.fetch;
+            
+            // 1. Fetch Data
+            const txRes = await fetch(`${apiBase}/override/economy/transactions?limit=1000`, {
+                headers: { 'X-Override-Token': token }
+            });
+            let transactions = [];
+            if (txRes.ok) {
+                const txData = await txRes.json();
+                transactions = txData.transactions || [];
+            }
+
+            // 2. Fetch User IPs (Potential Alts)
+            const userRes = await fetch(`${apiBase}/override/users?limit=1000`, {
+                headers: { 'X-Override-Token': token }
+            });
+            let users = [];
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                users = userData.users || [];
+            }
+
+            const alerts = store.get('fraudAlerts') || [];
+            const newAlerts = [];
+
+            const addAlert = (type, severity, description, relatedUsers, data) => {
+                const exists = alerts.find(a => 
+                    a.type === type && 
+                    a.description === description && 
+                    a.status !== 'dismissed' &&
+                    Date.now() - new Date(a.createdAt).getTime() < 86400000
+                );
+                if (!exists) {
+                    newAlerts.push({
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                        type,
+                        severity,
+                        description,
+                        relatedUsers,
+                        data,
+                        status: 'new',
+                        createdAt: new Date().toISOString()
+                    });
+                }
+            };
+
+            // Detection Logic
+            
+            // Rapid Large Transfers
+            const largeTxs = transactions.filter(t => Math.abs(t.amount) > 10000);
+            const txByUser = {};
+            largeTxs.forEach(tx => {
+                if (!txByUser[tx.user_id]) txByUser[tx.user_id] = [];
+                txByUser[tx.user_id].push(tx);
+            });
+            
+            for (const [userId, txs] of Object.entries(txByUser)) {
+                txs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                for (let i = 0; i < txs.length - 2; i++) {
+                    const t1 = new Date(txs[i].created_at);
+                    const t3 = new Date(txs[i+2].created_at);
+                    if (t3 - t1 < 5 * 60 * 1000) {
+                        addAlert('Rapid Large Transfers', 'High', `User ${userId} made 3+ large transfers in 5 minutes`, [userId], { transactions: txs.slice(i, i+3) });
+                        break;
+                    }
+                }
+            }
+
+            // Shared IP Detection
+            const usersByIp = {};
+            users.forEach(u => {
+                if (u.last_ip && u.last_ip !== '127.0.0.1') {
+                    if (!usersByIp[u.last_ip]) usersByIp[u.last_ip] = [];
+                    usersByIp[u.last_ip].push(u.discord_id);
+                }
+            });
+
+            for (const [ip, discordIds] of Object.entries(usersByIp)) {
+                if (discordIds.length > 1) {
+                    addAlert('Shared IP Detection', 'Medium', `${discordIds.length} users sharing IP address ${ip}`, discordIds, { ip });
+                }
+            }
+
+            // Wealth Spike (>500% in 24h - simple logic using flows)
+            const flowByUser = {};
+            transactions.forEach(tx => {
+                if (!flowByUser[tx.user_id]) flowByUser[tx.user_id] = 0;
+                // Simplified: assuming inflow is positive, outflow negative
+                flowByUser[tx.user_id] += tx.amount;
+            });
+
+            for (const [userId, flow] of Object.entries(flowByUser)) {
+                if (flow > 500000) { // arbitrary threshold for spike alert without knowing base balance
+                    addAlert('Wealth Spike', 'Medium', `User ${userId} had net inflow of ${flow.toLocaleString()} in recent window`, [userId], { netFlow: flow });
+                }
+            }
+
+            // New Account + Rich
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            
+            users.forEach(u => {
+                const created = new Date(u.created_at || u.joined_at);
+                if (created > sevenDaysAgo && (u.balance > 100000 || u.bank > 100000)) {
+                    addAlert('New Account + Rich', 'High', `Account <7 days old has balance >$100k`, [u.discord_id], { balance: u.balance, created: u.created_at });
+                }
+            });
+
+            // Save Alerts
+            const updatedAlerts = [...newAlerts, ...alerts];
+            store.set('fraudAlerts', updatedAlerts);
+            
+            return {
+                scannedTransactions: transactions.length,
+                newAlerts: newAlerts.length,
+                alerts: newAlerts
+            };
+
+        } catch (error) {
+            console.error('Fraud Scan Error:', error);
+            return { scannedTransactions: 0, newAlerts: 0, alerts: [] };
+        }
+    });
+}
+
+/**
+ * Feature #17: Relationship Mapper
+ */
+function setupRelationshipMapper() {
+    ipcMain.handle('relationships:get', async (event, filters = {}) => {
+        try {
+            // Helper to get base and token
+            const currentServerId = store.get('currentServer');
+            let apiBase = 'https://api.usgrp.xyz';
+            let token = store.get('authToken');
+            
+            if (currentServerId) {
+                const servers = store.get('servers') || [];
+                const server = servers.find(s => s.id === currentServerId);
+                if (server) {
+                    apiBase = server.apiBase;
+                    token = server.token;
+                }
+            }
+
+            // Using global fetch (Node 18+)
+            const fetch = (await import('node-fetch')).default || global.fetch;
+
+            // 1. Fetch Users
+            // Limit to 2000 for performance unless filtered
+            const userRes = await fetch(`${apiBase}/override/users?limit=2000`, {
+                headers: { 'X-Override-Token': token }
+            });
+            let users = [];
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                users = userData.users || [];
+            } else {
+                // If API fails (e.g. dev mode), use mock data if in dev
+                if (isDev) {
+                    users = generateMockUsers();
+                }
+            }
+
+            // 2. Fetch Transactions
+            const txRes = await fetch(`${apiBase}/override/economy/transactions?limit=5000`, {
+                headers: { 'X-Override-Token': token }
+            });
+            let transactions = [];
+            if (txRes.ok) {
+                const txData = await txRes.json();
+                transactions = txData.transactions || [];
+            } else {
+                if (isDev) {
+                    transactions = generateMockTransactions(users);
+                }
+            }
+
+            // 3. Process Nodes
+            const nodes = users.map(u => ({
+                id: u.discord_id,
+                label: u.username || u.name || u.discord_id,
+                group: u.status || 'citizen', // citizen, staff, banned
+                value: (u.balance || 0) + (u.bank || 0), // wealth
+                details: u
+            }));
+
+            // Filter nodes if needed
+            // ...
+
+            // 4. Process Edges
+            const edges = [];
+            
+            // 4a. Trades
+            // Aggregate transactions between same pair
+            const tradeMap = new Map();
+            transactions.forEach(tx => {
+                if (!tx.user_id || !tx.target_id) return;
+                const key = [tx.user_id, tx.target_id].sort().join('-');
+                if (!tradeMap.has(key)) {
+                    tradeMap.set(key, { 
+                        from: tx.user_id, 
+                        to: tx.target_id, 
+                        value: 0, 
+                        count: 0,
+                        type: 'trade' 
+                    });
+                }
+                const entry = tradeMap.get(key);
+                entry.value += Math.abs(tx.amount);
+                entry.count += 1;
+            });
+            
+            tradeMap.forEach(edge => {
+                edges.push({
+                    from: edge.from,
+                    to: edge.to,
+                    value: edge.value,
+                    label: `$${edge.value}`,
+                    color: '#10b981', // green for money
+                    type: 'trade'
+                });
+            });
+
+            // 4b. Shared IP
+            const ipMap = {};
+            users.forEach(u => {
+                if (u.last_ip && u.last_ip !== '127.0.0.1' && u.last_ip !== '::1') {
+                    if (!ipMap[u.last_ip]) ipMap[u.last_ip] = [];
+                    ipMap[u.last_ip].push(u.discord_id);
+                }
+            });
+
+            for (const [ip, ids] of Object.entries(ipMap)) {
+                if (ids.length > 1) {
+                    // Connect all pairs (clique)
+                    for (let i = 0; i < ids.length; i++) {
+                        for (let j = i + 1; j < ids.length; j++) {
+                            edges.push({
+                                from: ids[i],
+                                to: ids[j],
+                                value: 1,
+                                color: '#ef4444', // red for suspicious
+                                type: 'shared_ip',
+                                dashed: true
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 4c. Gangs
+            const gangMap = {};
+            users.forEach(u => {
+                if (u.gang && u.gang !== 'None') {
+                    if (!gangMap[u.gang]) gangMap[u.gang] = [];
+                    gangMap[u.gang].push(u.discord_id);
+                }
+            });
+
+            for (const [gang, ids] of Object.entries(gangMap)) {
+                if (ids.length > 1) {
+                    // Create a central "Gang Node" to avoid clique explosion?
+                    // Or just connect them. Let's do a chain or simple connections to avoid clutter.
+                    // For visualization, maybe just connect sequential to form a cluster, or all to first.
+                    // Better: Connect all to a virtual gang node if the library supports it, but here we only have user nodes.
+                    // Let's connect everyone to the "leader" (first in list) or just pairwise.
+                    // Pairwise is too much. Let's just do a ring: 1-2, 2-3, 3-1.
+                    for (let i = 0; i < ids.length; i++) {
+                        const next = (i + 1) % ids.length;
+                        edges.push({
+                            from: ids[i],
+                            to: ids[next],
+                            value: 2,
+                            color: '#8b5cf6', // purple
+                            type: 'gang'
+                        });
+                    }
+                }
+            }
+
+            // 4d. Family (Mocked for now as we don't have partner field confirmed)
+            // if (u.partner) ...
+
+            // 5. Ring Detection (Suspicious Circular Trades)
+            // A -> B -> C -> A
+            // We build an adjacency list for TRADES only
+            const adj = {};
+            edges.filter(e => e.type === 'trade').forEach(e => {
+                if (!adj[e.from]) adj[e.from] = [];
+                adj[e.from].push(e.to);
+            });
+            
+            const suspiciousNodes = new Set();
+            
+            // DFS for cycles of length 3 or 4
+            // Simplified detection
+            for (const startNode of Object.keys(adj)) {
+                const stack = [[startNode, [startNode]]];
+                while (stack.length > 0) {
+                    const [node, path] = stack.pop();
+                    if (path.length > 4) continue;
+                    
+                    const neighbors = adj[node] || [];
+                    for (const neighbor of neighbors) {
+                        if (neighbor === startNode && path.length > 2) {
+                            // Cycle found!
+                            path.forEach(n => suspiciousNodes.add(n));
+                        } else if (!path.includes(neighbor)) {
+                            stack.push([neighbor, [...path, neighbor]]);
+                        }
+                    }
+                }
+            }
+
+            // Mark suspicious nodes
+            nodes.forEach(n => {
+                if (suspiciousNodes.has(n.id)) {
+                    n.suspicious = true;
+                    n.borderColor = '#ef4444';
+                    n.borderWidth = 4;
+                }
+            });
+
+            return { nodes, edges };
+
+        } catch (error) {
+            console.error('Relationship Mapper Error:', error);
+            return { nodes: [], edges: [] };
+        }
+    });
+}
+
+function generateMockUsers() {
+    const statuses = ['citizen', 'citizen', 'citizen', 'staff', 'banned'];
+    const users = [];
+    for (let i = 0; i < 50; i++) {
+        users.push({
+            discord_id: `user_${i}`,
+            username: `User ${i}`,
+            status: statuses[Math.floor(Math.random() * statuses.length)],
+            balance: Math.floor(Math.random() * 100000),
+            bank: Math.floor(Math.random() * 1000000),
+            last_ip: Math.random() > 0.8 ? '192.168.1.50' : `10.0.0.${i}`, // Some shared IPs
+            gang: Math.random() > 0.8 ? 'Ballas' : (Math.random() > 0.8 ? 'Vagos' : 'None')
+        });
+    }
+    return users;
+}
+
+function generateMockTransactions(users) {
+    const txs = [];
+    for (let i = 0; i < 100; i++) {
+        const u1 = users[Math.floor(Math.random() * users.length)];
+        const u2 = users[Math.floor(Math.random() * users.length)];
+        if (u1.discord_id !== u2.discord_id) {
+            txs.push({
+                user_id: u1.discord_id,
+                target_id: u2.discord_id,
+                amount: Math.floor(Math.random() * 5000),
+                created_at: new Date().toISOString()
+            });
+        }
+    }
+    // Add a ring
+    txs.push({ user_id: 'user_1', target_id: 'user_2', amount: 10000 });
+    txs.push({ user_id: 'user_2', target_id: 'user_3', amount: 10000 });
+    txs.push({ user_id: 'user_3', target_id: 'user_1', amount: 10000 });
+    return txs;
+}
+

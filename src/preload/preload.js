@@ -112,6 +112,49 @@ contextBridge.exposeInMainWorld('electron', {
         delete: (id) => ipcRenderer.invoke('webhooks:delete', id)
     },
 
+    // Fraud Detection
+    fraud: {
+        getAlerts: () => ipcRenderer.invoke('fraud:getAlerts'),
+        scan: () => ipcRenderer.invoke('fraud:scan'),
+        updateAlert: (id, data) => ipcRenderer.invoke('fraud:updateAlert', id, data)
+    },
+
+    // Relationship Mapper
+    relationships: {
+        get: (filters) => ipcRenderer.invoke('relationships:get', filters)
+    },
+
+    // Script Runner
+    scripts: {
+        list: () => ipcRenderer.invoke('scripts:list'),
+        run: (script, dryRun) => ipcRenderer.invoke('scripts:run', script, dryRun),
+        upload: (name, content) => ipcRenderer.invoke('scripts:upload', name, content),
+        save: (name, content) => ipcRenderer.invoke('scripts:save', name, content),
+        onOutput: (callback) => {
+            const subscription = (event, data) => callback(data);
+            ipcRenderer.on('scripts:output', subscription);
+            return () => ipcRenderer.removeListener('scripts:output', subscription);
+        }
+    },
+
+    // Git
+    git: {
+        listRepos: () => ipcRenderer.invoke('git:listRepos'),
+        status: (repoPath) => ipcRenderer.invoke('git:status', repoPath),
+        branches: (repoPath) => ipcRenderer.invoke('git:branches', repoPath),
+        checkout: (repoPath, branch) => ipcRenderer.invoke('git:checkout', repoPath, branch),
+        createBranch: (repoPath, branch) => ipcRenderer.invoke('git:createBranch', repoPath, branch),
+        deleteBranch: (repoPath, branch) => ipcRenderer.invoke('git:deleteBranch', repoPath, branch),
+        pull: (repoPath) => ipcRenderer.invoke('git:pull', repoPath),
+        push: (repoPath) => ipcRenderer.invoke('git:push', repoPath),
+        stage: (repoPath, files) => ipcRenderer.invoke('git:stage', repoPath, files),
+        unstage: (repoPath, files) => ipcRenderer.invoke('git:unstage', repoPath, files),
+        commit: (repoPath, message) => ipcRenderer.invoke('git:commit', repoPath, message),
+        log: (repoPath) => ipcRenderer.invoke('git:log', repoPath),
+        diff: (repoPath, file) => ipcRenderer.invoke('git:diff', repoPath, file),
+        reset: (repoPath, mode, commit) => ipcRenderer.invoke('git:reset', repoPath, mode, commit)
+    },
+
     // Event listeners
     on: (channel, callback) => {
         const allowedChannels = [

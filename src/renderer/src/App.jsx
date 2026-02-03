@@ -64,6 +64,11 @@ import EconomyStats from './pages/EconomyStats';
 import BulkWipe from './pages/BulkWipe';
 import AutoModConfig from './pages/AutoModConfig';
 import CommandPalette from './components/CommandPalette';
+import FraudDetection from './pages/FraudDetection';
+import RelationshipMapper from './pages/RelationshipMapper';
+import LiveMap from './pages/LiveMap';
+import ScriptRunner from './pages/ScriptRunner';
+import GitManager from './pages/GitManager';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -404,6 +409,11 @@ export default function App() {
                         <Route path="/economy/godmode" element={<GodMode />} />
                         <Route path="/economy/bulk-wipe" element={<BulkWipe />} />
                         <Route path="/activity" element={<ActivityDashboard />} />
+                        <Route path="/live-map" element={<LiveMap />} />
+                        <Route path="/economy/fraud" element={<FraudDetection />} />
+                        <Route path="/relationships" element={<RelationshipMapper />} />
+                        <Route path="/scripts" element={<ScriptRunner />} />
+                        <Route path="/git" element={<GitManager />} />
                     </Routes>
                 </main>
 
