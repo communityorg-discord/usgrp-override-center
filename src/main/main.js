@@ -749,10 +749,12 @@ let screenShareInterval = null;
 let lastDetectedApps = [];
 
 const CAPTURE_PROCESSES_WIN = [
-    'discord.exe', 'obs64.exe', 'obs32.exe', 'obs.exe', 'streamlabs obs.exe', 'slobs.exe',
+    // Dedicated recording/streaming software only
+    'obs64.exe', 'obs32.exe', 'obs.exe', 'streamlabs obs.exe', 'slobs.exe',
     'nvcontainer.exe', 'nvidia share.exe', 'gamebar.exe', 'gamebarftserver.exe',
-    'zoom.exe', 'teams.exe', 'loom.exe', 'sharex.exe', 'bandicam.exe', 'bdcam.exe',
-    'medal.exe', 'snagit.exe', 'xsplit.core.exe'
+    'loom.exe', 'sharex.exe', 'bandicam.exe', 'bdcam.exe',
+    'medal.exe', 'snagit.exe', 'xsplit.core.exe', 'camtasia.exe',
+    // NOT including: discord.exe, zoom.exe, teams.exe (too noisy - always running)
 ];
 
 async function detectScreenCapture() {
@@ -769,10 +771,12 @@ async function detectScreenCapture() {
             for (const proc of CAPTURE_PROCESSES_WIN) {
                 if (processes.some(p => p.includes(proc.toLowerCase()))) {
                     let name = proc.replace('.exe', '');
-                    if (proc.includes('discord')) name = 'Discord';
-                    else if (proc.includes('obs')) name = 'OBS Studio';
-                    else if (proc.includes('zoom')) name = 'Zoom';
-                    else if (proc.includes('teams')) name = 'Teams';
+                    if (proc.includes('obs') || proc.includes('slobs')) name = 'OBS Studio';
+                    else if (proc.includes('nvidia') || proc.includes('gamebar')) name = 'Screen Recorder';
+                    else if (proc.includes('loom')) name = 'Loom';
+                    else if (proc.includes('sharex')) name = 'ShareX';
+                    else if (proc.includes('bandicam') || proc.includes('bdcam')) name = 'Bandicam';
+                    else if (proc.includes('medal')) name = 'Medal.tv';
                     if (!detected.includes(name)) detected.push(name);
                 }
             }
