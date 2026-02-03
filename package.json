@@ -1,6 +1,6 @@
 {
   "name": "usgrp-override-center",
-  "version": "2.4.38",
+  "version": "2.4.39",
   "description": "United States Government Roleplay Developer Panel",
   "main": "src/main/main.js",
   "author": {
@@ -55,10 +55,8 @@
     "compression": "normal",
     "publish": {
       "provider": "github",
-      "owner": "usgrp",
-      "repo": "usgrp-override-center",
-      "host": "git.usgrp.xyz",
-      "protocol": "https"
+      "owner": "communityorg-discord",
+      "repo": "usgrp-override-center"
     }
   },
   "dependencies": {
