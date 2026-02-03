@@ -36,7 +36,21 @@ export function useApi() {
                 headers
             });
 
-            const data = await response.json();
+            // Check content type before parsing
+            const contentType = response.headers.get('content-type') || '';
+            let data;
+            
+            if (contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                // If it's HTML, extract error message
+                if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                    const match = text.match(/<pre>([^<]+)<\/pre>/);
+                    throw new Error(match ? match[1] : 'Server returned HTML instead of JSON');
+                }
+                data = { error: text };
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || data.error || 'Request failed');
