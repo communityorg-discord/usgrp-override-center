@@ -15,6 +15,10 @@ import Database from './pages/Database';
 import FileManager from './pages/FileManager';
 import Network from './pages/Network';
 import Settings from './pages/Settings';
+import Servers from './pages/Servers';
+import ServiceTemplates from './pages/ServiceTemplates';
+import WebhookTester from './pages/WebhookTester';
+import Profiler from './pages/Profiler';
 import Backups from './pages/Backups';
 import DiscordManager from './pages/DiscordManager';
 import BanManager from './pages/BanManager';
@@ -285,6 +289,10 @@ export default function App() {
                         <Route path="/ssl" element={<SSLMonitor />} />
                         <Route path="/timeline" element={<AuditTimeline />} />
                         <Route path="/ratelimits" element={<RateLimits />} />
+                        <Route path="/servers" element={<Servers />} />
+                        <Route path="/templates" element={<ServiceTemplates />} />
+                        <Route path="/webhooks" element={<WebhookTester />} />
+                        <Route path="/profiler" element={<Profiler />} />
                         <Route path="/settings" element={<Settings />} />
                     </Routes>
                 </main>

@@ -7,11 +7,19 @@ export default function Deploy() {
     const [deployingProject, setDeployingProject] = useState(null);
     const [deployLog, setDeployLog] = useState([]);
     const [history, setHistory] = useState([]);
+    const [scheduled, setScheduled] = useState([]);
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState('');
+    const [projectToSchedule, setProjectToSchedule] = useState(null);
     const logEndRef = useRef(null);
 
     useEffect(() => {
         loadProjects();
         loadHistory();
+        loadScheduled();
+        
+        const interval = setInterval(loadScheduled, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -34,6 +42,13 @@ export default function Deploy() {
     async function loadHistory() {
         const h = await window.electron.store.get('deploy_history') || [];
         setHistory(h);
+    }
+
+    async function loadScheduled() {
+        if (window.electron.deploy) {
+            const s = await window.electron.deploy.getScheduled();
+            setScheduled(s.sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor)));
+        }
     }
 
     async function handleDeploy(project) {
@@ -99,6 +114,43 @@ export default function Deploy() {
         }
     }
 
+    async function handleScheduleSubmit(e) {
+        e.preventDefault();
+        if (!projectToSchedule || !scheduleDate) return;
+
+        const currentServer = await window.electron.servers.getCurrent();
+        
+        await window.electron.deploy.schedule({
+            project: projectToSchedule,
+            scheduledFor: new Date(scheduleDate).toISOString(),
+            serverId: currentServer
+        });
+        
+        setShowScheduleModal(false);
+        setScheduleDate('');
+        setProjectToSchedule(null);
+        loadScheduled();
+    }
+
+    async function cancelSchedule(id) {
+        if (confirm('Cancel this scheduled deployment?')) {
+            await window.electron.deploy.cancelScheduled(id);
+            loadScheduled();
+        }
+    }
+
+    function openScheduleModal(project) {
+        setProjectToSchedule(project);
+        // Default to tomorrow 00:00
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        // Format for datetime-local input: YYYY-MM-DDTHH:mm
+        const iso = tomorrow.toISOString().slice(0, 16);
+        setScheduleDate(iso);
+        setShowScheduleModal(true);
+    }
+
     function getStatusColor(type) {
         switch (type) {
             case 'success': return 'text-emerald-400';
@@ -116,13 +168,15 @@ export default function Deploy() {
     return (
         <div className="space-y-6 h-full flex flex-col">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-white">Deploy Center</h1>
-                <p className="text-gray-400 mt-1">Manage and deploy USGRP services</p>
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Deploy Center</h1>
+                    <p className="text-gray-400 mt-1">Manage and deploy USGRP services</p>
+                </div>
             </div>
 
             <div className="flex gap-6 h-full min-h-0">
-                {/* Left: Projects */}
+                {/* Left: Projects & Schedule */}
                 <div className="w-1/3 flex flex-col gap-4">
                     <div className="flex-1 overflow-auto space-y-4 pr-2">
                         {projects.map((p) => (
@@ -152,19 +206,70 @@ export default function Deploy() {
                                     )}
                                 </div>
 
-                                <button
-                                    onClick={() => handleDeploy(p.name)}
-                                    disabled={deployingProject !== null || !p.available}
-                                    className={`w-full py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                                        deployingProject === p.name 
-                                            ? 'bg-blue-600/50 cursor-wait text-white' 
-                                            : 'bg-amber-500 hover:bg-amber-600 text-black'
-                                    }`}
-                                >
-                                    {deployingProject === p.name ? 'Deploying...' : '🚀 Deploy Now'}
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleDeploy(p.name)}
+                                        disabled={deployingProject !== null || !p.available}
+                                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                                            deployingProject === p.name 
+                                                ? 'bg-blue-600/50 cursor-wait text-white' 
+                                                : 'bg-amber-500 hover:bg-amber-600 text-black'
+                                        }`}
+                                    >
+                                        {deployingProject === p.name ? 'Deploying...' : '🚀 Deploy Now'}
+                                    </button>
+                                    <button
+                                        onClick={() => openScheduleModal(p.name)}
+                                        disabled={!p.available}
+                                        className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                                        title="Schedule Deploy"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         ))}
+
+                        {/* Scheduled Deploys */}
+                        {scheduled.length > 0 && (
+                            <div className="bg-[#1a1a24] border border-white/5 rounded-xl p-4">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Scheduled
+                                </h3>
+                                <div className="space-y-2">
+                                    {scheduled.map(job => (
+                                        <div key={job.id} className="bg-black/20 p-2 rounded border border-white/5 flex justify-between items-center text-xs">
+                                            <div>
+                                                <div className="font-bold text-white">{job.project}</div>
+                                                <div className="text-gray-500">{new Date(job.scheduledFor).toLocaleString()}</div>
+                                                <div className={`text-[10px] uppercase font-bold mt-0.5 ${
+                                                    job.status === 'pending' ? 'text-blue-400' :
+                                                    job.status === 'completed' ? 'text-green-400' :
+                                                    job.status === 'failed' ? 'text-red-400' : 'text-gray-400'
+                                                }`}>
+                                                    {job.status}
+                                                </div>
+                                            </div>
+                                            {job.status === 'pending' && (
+                                                <button 
+                                                    onClick={() => cancelSchedule(job.id)}
+                                                    className="text-gray-500 hover:text-red-400"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     
                     {/* History */}
@@ -220,6 +325,43 @@ export default function Deploy() {
                     </div>
                 </div>
             </div>
+
+            {/* Schedule Modal */}
+            {showScheduleModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-[#1a1a24] p-6 rounded-xl border border-white/10 w-full max-w-sm shadow-2xl">
+                        <h2 className="text-lg font-bold text-white mb-4">Schedule Deploy: {projectToSchedule}</h2>
+                        <form onSubmit={handleScheduleSubmit}>
+                            <div className="mb-4">
+                                <label className="block text-sm text-gray-400 mb-1">Date & Time</label>
+                                <input 
+                                    type="datetime-local" 
+                                    required
+                                    className="w-full bg-[#0a0a0f] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                                    value={scheduleDate}
+                                    onChange={e => setScheduleDate(e.target.value)}
+                                    min={new Date().toISOString().slice(0, 16)}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowScheduleModal(false)}
+                                    className="px-4 py-2 text-gray-400 hover:text-white text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit"
+                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg text-sm"
+                                >
+                                    Schedule
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

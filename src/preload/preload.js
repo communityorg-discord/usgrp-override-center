@@ -64,6 +64,15 @@ contextBridge.exposeInMainWorld('electron', {
         setAlwaysOnTop: (value) => ipcRenderer.invoke('settings:setAlwaysOnTop', value)
     },
 
+    // Servers
+    servers: {
+        getAll: () => ipcRenderer.invoke('servers:getAll'),
+        add: (server) => ipcRenderer.invoke('servers:add', server),
+        remove: (id) => ipcRenderer.invoke('servers:remove', id),
+        select: (id) => ipcRenderer.invoke('servers:select', id),
+        getCurrent: () => ipcRenderer.invoke('servers:getCurrent')
+    },
+
     // Config
     config: {
         list: () => ipcRenderer.invoke('config:list'),
@@ -89,6 +98,20 @@ contextBridge.exposeInMainWorld('electron', {
         }
     },
     
+    // Deploy
+    deploy: {
+        schedule: (data) => ipcRenderer.invoke('deploy:schedule', data),
+        getScheduled: () => ipcRenderer.invoke('deploy:getScheduled'),
+        cancelScheduled: (id) => ipcRenderer.invoke('deploy:cancelScheduled', id)
+    },
+    
+    // Webhooks
+    webhooks: {
+        get: () => ipcRenderer.invoke('webhooks:get'),
+        save: (webhook) => ipcRenderer.invoke('webhooks:save', webhook),
+        delete: (id) => ipcRenderer.invoke('webhooks:delete', id)
+    },
+
     // Event listeners
     on: (channel, callback) => {
         const allowedChannels = [

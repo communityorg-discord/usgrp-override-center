@@ -30,12 +30,15 @@ const store = new Store({
         windowBounds: { width: 1400, height: 900 },
         alwaysOnTop: false,
         startMinimized: false,
-        theme: 'dark'
+        theme: 'dark',
+        servers: [],
+        currentServer: null,
+        scheduledDeploys: []
     }
 });
 
 // Config
-const API_BASE = 'https://api.usgrp.xyz';
+const DEFAULT_API_BASE = 'https://api.usgrp.xyz';
 const AUTH_BASE = 'https://auth.usgrp.xyz';
 const PROTOCOL = 'usgrp-override';
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -126,7 +129,7 @@ function createWindow() {
                     "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                     "font-src 'self' https://fonts.gstatic.com; " +
                     "img-src 'self' data: https:; " +
-                    "connect-src 'self' https://api.usgrp.xyz wss://api.usgrp.xyz https://api.github.com https://github.com;"
+                    "connect-src 'self' https: wss:;"
                 ]
             }
         });
@@ -464,10 +467,95 @@ function setupIPC() {
     });
     
     // API configuration
-    ipcMain.handle('api:getBase', () => API_BASE);
+    ipcMain.handle('api:getBase', () => {
+        const currentServerId = store.get('currentServer');
+        if (currentServerId) {
+            const servers = store.get('servers') || [];
+            const server = servers.find(s => s.id === currentServerId);
+            if (server) return server.apiBase;
+        }
+        return DEFAULT_API_BASE;
+    });
     ipcMain.handle('api:getAuthBase', () => AUTH_BASE);
-    ipcMain.handle('api:getToken', () => store.get('authToken'));
-    ipcMain.handle('api:setToken', (event, token) => store.set('authToken', token));
+    ipcMain.handle('api:getToken', () => {
+        const currentServerId = store.get('currentServer');
+        if (currentServerId) {
+            const servers = store.get('servers') || [];
+            const server = servers.find(s => s.id === currentServerId);
+            if (server) return server.token;
+        }
+        return store.get('authToken');
+    });
+    ipcMain.handle('api:setToken', (event, token) => {
+        const currentServerId = store.get('currentServer');
+        if (currentServerId) {
+            // Update token for current server
+            const servers = store.get('servers') || [];
+            const index = servers.findIndex(s => s.id === currentServerId);
+            if (index !== -1) {
+                servers[index].token = token;
+                store.set('servers', servers);
+                return;
+            }
+        }
+        store.set('authToken', token);
+    });
+
+    // Server Management
+    ipcMain.handle('servers:getAll', () => store.get('servers') || []);
+    ipcMain.handle('servers:add', (event, server) => {
+        const servers = store.get('servers') || [];
+        servers.push({ ...server, id: Date.now().toString() });
+        store.set('servers', servers);
+        return servers;
+    });
+    ipcMain.handle('servers:remove', (event, id) => {
+        const servers = store.get('servers') || [];
+        const newServers = servers.filter(s => s.id !== id);
+        store.set('servers', newServers);
+        
+        if (store.get('currentServer') === id) {
+            store.set('currentServer', null);
+        }
+        return newServers;
+    });
+    ipcMain.handle('servers:select', (event, id) => {
+        store.set('currentServer', id);
+        // Reload window to apply changes (api base url etc)
+        mainWindow.reload();
+        return true;
+    });
+    ipcMain.handle('servers:getCurrent', () => store.get('currentServer'));
+
+    // Scheduled Deploys
+    ipcMain.handle('deploy:schedule', (event, deploy) => {
+        const schedule = store.get('scheduledDeploys') || [];
+        schedule.push({ ...deploy, id: Date.now().toString(), status: 'pending' });
+        store.set('scheduledDeploys', schedule);
+        return schedule;
+    });
+    ipcMain.handle('deploy:getScheduled', () => store.get('scheduledDeploys') || []);
+    ipcMain.handle('deploy:cancelScheduled', (event, id) => {
+        const schedule = store.get('scheduledDeploys') || [];
+        const newSchedule = schedule.filter(d => d.id !== id);
+        store.set('scheduledDeploys', newSchedule);
+        return newSchedule;
+    });
+
+    // Webhooks
+    ipcMain.handle('webhooks:get', () => store.get('savedWebhooks') || []);
+    ipcMain.handle('webhooks:save', (event, webhook) => {
+        const saved = store.get('savedWebhooks') || [];
+        saved.push({ ...webhook, id: Date.now().toString() });
+        store.set('savedWebhooks', saved);
+        return saved;
+    });
+    ipcMain.handle('webhooks:delete', (event, id) => {
+        const saved = store.get('savedWebhooks') || [];
+        const newSaved = saved.filter(w => w.id !== id);
+        store.set('savedWebhooks', newSaved);
+        return newSaved;
+    });
     
     // Auth flow - open browser for SSO
     ipcMain.handle('auth:openLogin', () => {
@@ -538,6 +626,76 @@ function sendToRenderer(channel, data) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SCHEDULED TASKS
+// ═══════════════════════════════════════════════════════════════
+
+function checkScheduledDeploys() {
+    console.log('[Scheduler] Starting scheduler...');
+    setInterval(async () => {
+        try {
+            const schedule = store.get('scheduledDeploys') || [];
+            const now = new Date();
+            let changed = false;
+
+            for (const job of schedule) {
+                if (job.status === 'pending' && new Date(job.scheduledFor) <= now) {
+                    console.log(`[Scheduler] Triggering deploy for ${job.project}`);
+                    
+                    // Mark as processing
+                    job.status = 'processing';
+                    changed = true;
+
+                    // Execute
+                    try {
+                        // Get server credentials
+                        let apiBase = DEFAULT_API_BASE;
+                        let token = store.get('authToken');
+
+                        if (job.serverId) {
+                            const servers = store.get('servers') || [];
+                            const server = servers.find(s => s.id === job.serverId);
+                            if (server) {
+                                apiBase = server.apiBase;
+                                token = server.token;
+                            }
+                        }
+
+                        // Call API
+                        const fetch = (await import('node-fetch')).default || global.fetch; // Use global fetch if available (Node 18+)
+                        const response = await fetch(`${apiBase}/override/deploy/${job.project}`, {
+                            method: 'POST',
+                            headers: {
+                                'X-Override-Token': token
+                            }
+                        });
+
+                        if (response.ok) {
+                            job.status = 'completed';
+                            job.completedAt = new Date().toISOString();
+                        } else {
+                            job.status = 'failed';
+                            job.error = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                    } catch (err) {
+                        job.status = 'failed';
+                        job.error = err.message;
+                    }
+                    
+                    // Notify renderer
+                    sendToRenderer('deploy-update', job);
+                }
+            }
+
+            if (changed) {
+                store.set('scheduledDeploys', schedule);
+            }
+        } catch (error) {
+            console.error('[Scheduler] Error:', error);
+        }
+    }, 60000); // Check every minute
+}
+
+// ═══════════════════════════════════════════════════════════════
 // APP LIFECYCLE
 // ═══════════════════════════════════════════════════════════════
 
@@ -570,6 +728,7 @@ app.on('open-url', (event, url) => {
 app.whenReady().then(() => {
     createWindow();
     createTray();
+    checkScheduledDeploys();
     registerShortcuts();
     setupIPC();
     setupTerminalIPC();

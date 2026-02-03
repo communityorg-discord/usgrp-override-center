@@ -13,8 +13,10 @@ const tabGroups = [
     {
         id: 'systems',
         tabs: [
+            { path: '/servers', label: 'Servers', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
             { path: '/systems', label: 'Systems', icon: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01' },
-            { path: '/metrics', label: 'Metrics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+            { path: '/profiler', label: 'Profiler', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+            { path: '/metrics', label: 'Metrics', icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
             { path: '/processes', label: 'Processes', icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
             { path: '/network', label: 'Network', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' },
             { path: '/cron', label: 'Cron', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -42,7 +44,9 @@ const tabGroups = [
         id: 'tools',
         tabs: [
             { path: '/deploy', label: 'Deploy', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
-            { path: '/terminal', label: 'Terminal', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+            { path: '/templates', label: 'Templates', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' },
+            { path: '/webhooks', label: 'Webhooks', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+            { path: '/terminal', label: 'Terminal', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z' },
             { path: '/quick-commands', label: 'Commands', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
             { path: '/logs', label: 'Logs', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
         ]
@@ -168,6 +172,8 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
 
             {/* Right: Quick Actions & Profile */}
             <div className="flex items-center gap-1.5 ml-4">
+                <ServerSelector />
+                
                 {/* Quick Action Buttons */}
                 <div className="flex items-center gap-0.5 pr-3 mr-2 border-r border-white/[0.06]">
                     <IconButton 
@@ -340,6 +346,99 @@ function ProfileButton({ user, onLogout }) {
                         </svg>
                         Sign out
                     </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ServerSelector() {
+    const [current, setCurrent] = useState(null);
+    const [servers, setServers] = useState([]);
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        loadData();
+        // Listen for server changes
+        document.addEventListener('visibilitychange', loadData);
+        return () => document.removeEventListener('visibilitychange', loadData);
+    }, []);
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    async function loadData() {
+        if (!window.electron?.servers) return;
+        const list = await window.electron.servers.getAll();
+        const currId = await window.electron.servers.getCurrent();
+        setServers(list);
+        const curr = list.find(s => s.id === currId);
+        setCurrent(curr || { name: 'Main (API)', id: 'default' });
+    }
+
+    async function handleSelect(id) {
+        if (id === 'default') {
+            await window.electron.servers.select(null);
+        } else {
+            await window.electron.servers.select(id);
+        }
+        setIsOpen(false);
+        setTimeout(loadData, 100);
+    }
+
+    if (servers.length === 0) return null;
+
+    return (
+        <div className="relative mr-2" ref={containerRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] transition-colors border border-white/[0.05]"
+            >
+                <div className={`w-2 h-2 rounded-full ${current?.id === 'default' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
+                <span className="text-xs font-medium text-gray-300 max-w-[100px] truncate">{current?.name}</span>
+                <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+
+            {isOpen && (
+                <div className="absolute top-full right-0 mt-1 w-48 bg-[#0a0a0f] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="py-1">
+                        <button
+                            onClick={() => handleSelect('default')}
+                            className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-white/5 ${current?.id === 'default' ? 'text-amber-400' : 'text-gray-400'}`}
+                        >
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                            Main (API)
+                        </button>
+                        {servers.map(server => (
+                            <button
+                                key={server.id}
+                                onClick={() => handleSelect(server.id)}
+                                className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2 hover:bg-white/5 ${current?.id === server.id ? 'text-blue-400' : 'text-gray-400'}`}
+                            >
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                {server.name}
+                            </button>
+                        ))}
+                        <div className="border-t border-white/5 mt-1 pt-1">
+                            <Link 
+                                to="/servers"
+                                onClick={() => setIsOpen(false)}
+                                className="block w-full text-left px-4 py-2 text-xs text-gray-500 hover:text-white hover:bg-white/5"
+                            >
+                                + Manage Servers
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
