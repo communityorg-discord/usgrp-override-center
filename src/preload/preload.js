@@ -157,6 +157,15 @@ contextBridge.exposeInMainWorld('electron', {
         isMac: process.platform === 'darwin'
     },
 
+    // Windows-specific features
+    win: {
+        setProgress: (progress) => ipcRenderer.invoke('win:set-progress', progress),
+        setOverlay: (text, color) => ipcRenderer.invoke('win:set-overlay', { text, color }),
+        flashTaskbar: (flash = true) => ipcRenderer.invoke('win:flash-taskbar', flash),
+        setThumbnailButtons: (buttons) => ipcRenderer.invoke('win:set-thumbnail-buttons', buttons),
+        isWin: process.platform === 'win32'
+    },
+
     // Script Runner
     scripts: {
         list: () => ipcRenderer.invoke('scripts:list'),
@@ -202,7 +211,8 @@ contextBridge.exposeInMainWorld('electron', {
             'update-progress',
             'auth-success',
             'screen-capture-detected',
-            'system-theme-changed'
+            'system-theme-changed',
+            'thumbnail-button-click'
         ];
         
         if (allowedChannels.includes(channel)) {

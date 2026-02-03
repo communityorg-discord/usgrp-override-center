@@ -1,6 +1,6 @@
 {
   "name": "usgrp-override-center",
-  "version": "2.5.11",
+  "version": "2.5.12",
   "description": "United States Government Roleplay Developer Panel",
   "main": "src/main/main.js",
   "author": {

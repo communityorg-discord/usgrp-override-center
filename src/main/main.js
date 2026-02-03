@@ -481,6 +481,139 @@ function setupMacFeatures() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// WINDOWS-SPECIFIC FEATURES
+// ═══════════════════════════════════════════════════════════════
+
+function setupWindowsFeatures() {
+    console.log('[Windows] Setting up Windows-specific features');
+    
+    // 1. Jump List - Quick actions from taskbar right-click
+    app.setUserTasks([
+        {
+            program: process.execPath,
+            arguments: '--goto=dashboard',
+            iconPath: process.execPath,
+            iconIndex: 0,
+            title: 'Open Dashboard',
+            description: 'Go to the main dashboard'
+        },
+        {
+            program: process.execPath,
+            arguments: '--goto=economy',
+            iconPath: process.execPath,
+            iconIndex: 0,
+            title: 'Economy Overview',
+            description: 'View economy statistics'
+        },
+        {
+            program: process.execPath,
+            arguments: '--goto=pm2',
+            iconPath: process.execPath,
+            iconIndex: 0,
+            title: 'PM2 Manager',
+            description: 'Manage server processes'
+        },
+        {
+            program: process.execPath,
+            arguments: '--goto=settings',
+            iconPath: process.execPath,
+            iconIndex: 0,
+            title: 'Settings',
+            description: 'Open application settings'
+        }
+    ]);
+    
+    // 2. IPC handlers for Windows features
+    
+    // Taskbar Progress (shows progress bar on taskbar icon)
+    ipcMain.handle('win:set-progress', (event, progress) => {
+        if (!isWin || !mainWindow) return { success: false };
+        // progress: 0-1 for progress, -1 to hide, 2 for indeterminate
+        if (progress < 0) {
+            mainWindow.setProgressBar(-1); // Hide
+        } else if (progress > 1) {
+            mainWindow.setProgressBar(progress, { mode: 'indeterminate' });
+        } else {
+            mainWindow.setProgressBar(progress);
+        }
+        return { success: true };
+    });
+    
+    // Taskbar Overlay (small badge icon on taskbar)
+    ipcMain.handle('win:set-overlay', (event, { text, color = '#D4AF37' }) => {
+        if (!isWin || !mainWindow) return { success: false };
+        
+        if (!text) {
+            mainWindow.setOverlayIcon(null, '');
+            return { success: true };
+        }
+        
+        // Create a small badge image with text
+        const badgeSize = 16;
+        const canvas = require('canvas');
+        if (canvas && canvas.createCanvas) {
+            const cvs = canvas.createCanvas(badgeSize, badgeSize);
+            const ctx = cvs.getContext('2d');
+            
+            // Draw circle background
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(badgeSize/2, badgeSize/2, badgeSize/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(text).slice(0, 2), badgeSize/2, badgeSize/2);
+            
+            const image = nativeImage.createFromDataURL(cvs.toDataURL());
+            mainWindow.setOverlayIcon(image, `${text} notifications`);
+        } else {
+            // Fallback: just use text description
+            mainWindow.setOverlayIcon(null, `${text} notifications`);
+        }
+        
+        return { success: true };
+    });
+    
+    // Flash taskbar to get attention
+    ipcMain.handle('win:flash-taskbar', (event, flash = true) => {
+        if (!isWin || !mainWindow) return { success: false };
+        mainWindow.flashFrame(flash);
+        return { success: true };
+    });
+    
+    // Thumbnail toolbar buttons (buttons in taskbar preview)
+    ipcMain.handle('win:set-thumbnail-buttons', (event, buttons) => {
+        if (!isWin || !mainWindow) return { success: false };
+        
+        const thumbButtons = buttons.map(btn => ({
+            tooltip: btn.tooltip,
+            icon: nativeImage.createFromPath(btn.icon || path.join(__dirname, '../build/icon.ico')),
+            click: () => {
+                mainWindow.webContents.send('thumbnail-button-click', btn.id);
+            }
+        }));
+        
+        mainWindow.setThumbarButtons(thumbButtons);
+        return { success: true };
+    });
+    
+    // Handle jump list arguments
+    const gotoArg = process.argv.find(arg => arg.startsWith('--goto='));
+    if (gotoArg) {
+        const page = gotoArg.replace('--goto=', '');
+        setTimeout(() => {
+            sendToRenderer('navigate', `/${page}`);
+        }, 1000);
+    }
+    
+    console.log('[Windows] Windows features initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
 
 function setupAutoUpdater() {
     autoUpdater.autoDownload = false;
@@ -1483,6 +1616,11 @@ app.whenReady().then(() => {
     // macOS-specific setup
     if (isMac) {
         setupMacFeatures();
+    }
+    
+    // Windows-specific setup
+    if (isWin) {
+        setupWindowsFeatures();
     }
     
     // Check if launched with protocol URL (Windows/Linux)

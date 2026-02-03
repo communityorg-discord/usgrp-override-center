@@ -5,6 +5,7 @@ import MenuBar from './components/MenuBar';
 import Toolbar from './components/Toolbar';
 import ActivityMonitor, { useActivityTracker } from './components/ActivityMonitor';
 import { useMacFeatures, useDockBadge } from './hooks/useMacFeatures';
+import { useWindowsFeatures, useTaskbarOverlay } from './hooks/useWindowsFeatures';
 import Dashboard from './pages/Dashboard';
 import Systems from './pages/Systems';
 import ProcessManager from './pages/ProcessManager';
@@ -104,6 +105,10 @@ export default function App() {
     // Mac features - dock badge for pending alerts
     const { isMac, bounceDock } = useMacFeatures();
     useDockBadge(pendingAlerts);
+    
+    // Windows features - taskbar overlay for pending alerts
+    const { isWin, flashTaskbar } = useWindowsFeatures();
+    useTaskbarOverlay(pendingAlerts);
     
     const [showAbout, setShowAbout] = useState(false);
     const [showImpersonate, setShowImpersonate] = useState(false);
