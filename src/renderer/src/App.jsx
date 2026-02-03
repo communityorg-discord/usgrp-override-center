@@ -53,6 +53,10 @@ import PayrollManager from './pages/PayrollManager';
 import CaseManager from './pages/CaseManager';
 import QuickModeration from './pages/QuickModeration';
 import PositionManager from './pages/PositionManager';
+import HousingManager from './pages/HousingManager';
+import VehicleRegistry from './pages/VehicleRegistry';
+import BusinessManager from './pages/BusinessManager';
+import WatchlistViewer from './pages/WatchlistViewer';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -315,8 +319,12 @@ export default function App() {
                         <Route path="/economy/treasury" element={<Treasury />} />
                         <Route path="/economy/transactions" element={<TransactionLog />} />
                         <Route path="/economy/payroll" element={<PayrollManager />} />
+                        <Route path="/economy/housing" element={<HousingManager />} />
+                        <Route path="/economy/vehicles" element={<VehicleRegistry />} />
+                        <Route path="/economy/businesses" element={<BusinessManager />} />
                         <Route path="/moderation/cases" element={<CaseManager />} />
                         <Route path="/moderation/actions" element={<QuickModeration />} />
+                        <Route path="/moderation/watchlist" element={<WatchlistViewer />} />
                         <Route path="/government/positions" element={<PositionManager />} />
                         <Route path="/users/lookup" element={<UserLookup />} />
                     </Routes>
