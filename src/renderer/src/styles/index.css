@@ -87,6 +87,75 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Ensure html element also gets the background */
+html {
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+/* Apply theme variables to html element */
+html.dark-theme {
+    --bg-primary: #0a0a10;
+    --bg-secondary: #0d0d16;
+    --bg-tertiary: #12121c;
+    --bg-card: rgba(255, 255, 255, 0.02);
+    --bg-elevated: rgba(255, 255, 255, 0.04);
+    --border-subtle: rgba(255, 255, 255, 0.04);
+    --border-default: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(255, 255, 255, 0.10);
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b0;
+    --text-muted: #6a6a7a;
+    --text-disabled: #4a4a5a;
+}
+
+html.light-theme {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #fafafa;
+    --bg-card: #ffffff;
+    --bg-elevated: #ffffff;
+    --border-subtle: rgba(0, 0, 0, 0.06);
+    --border-default: rgba(0, 0, 0, 0.1);
+    --border-hover: rgba(0, 0, 0, 0.15);
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a5a;
+    --text-muted: #8a8a9a;
+    --text-disabled: #c0c0c8;
+}
+
+html.oled-theme {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+    --bg-card: rgba(255, 255, 255, 0.02);
+    --bg-elevated: rgba(255, 255, 255, 0.03);
+    --border-subtle: rgba(255, 255, 255, 0.03);
+    --border-default: rgba(255, 255, 255, 0.05);
+    --border-hover: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #909090;
+    --text-muted: #606060;
+    --text-disabled: #404040;
+}
+
+html.midnight-theme {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-card: rgba(255, 255, 255, 0.02);
+    --bg-elevated: rgba(255, 255, 255, 0.04);
+    --border-subtle: rgba(255, 255, 255, 0.04);
+    --border-default: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(255, 255, 255, 0.10);
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --text-disabled: #484f58;
 }
 
 ::selection {

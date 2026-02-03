@@ -1233,6 +1233,7 @@ app.whenReady().then(() => {
     setupScriptRunner();
     setupGitIPC();
     setupTerminalIPC();
+    setupAtlasBrainConfig();
     setupAutoUpdater();
     
     // Check if launched with protocol URL (Windows/Linux)
@@ -2020,3 +2021,106 @@ function generateMockTransactions(users) {
     return txs;
 }
 
+
+/**
+ * Feature: Atlas Brain Config
+ * Manage Atlas AI configuration and memory files
+ */
+function setupAtlasBrainConfig() {
+    ipcMain.handle('override:atlas:config', async (event, newConfig) => {
+        try {
+            const currentServerId = store.get('currentServer');
+            let apiBase = 'https://admin.usgrp.xyz';
+            let token = store.get('authToken');
+            
+            if (currentServerId) {
+                const servers = store.get('servers') || [];
+                const server = servers.find(s => s.id === currentServerId);
+                if (server) {
+                    apiBase = server.apiBase;
+                    token = server.token;
+                }
+            }
+
+            if (newConfig) {
+                // Save config
+                const response = await fetch(`${apiBase}/api/v1/override/atlas/config`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newConfig)
+                });
+                const data = await response.json();
+                return data;
+            } else {
+                // Get config
+                const response = await fetch(`${apiBase}/api/v1/override/atlas/config`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                return data;
+            }
+        } catch (error) {
+            console.error('Atlas config error:', error);
+            // Return default config
+            return {
+                systemPrompt: 'You are Atlas, the USGRP Chief Systems Officer.',
+                personality: { bluntness: 80, loyalty: 100, sarcasm: 60 },
+                model: 'flash',
+                thinkingMode: false
+            };
+        }
+    });
+
+    ipcMain.handle('override:atlas:memory', async (event, { action, filename, content }) => {
+        try {
+            const currentServerId = store.get('currentServer');
+            let apiBase = 'https://admin.usgrp.xyz';
+            let token = store.get('authToken');
+            
+            if (currentServerId) {
+                const servers = store.get('servers') || [];
+                const server = servers.find(s => s.id === currentServerId);
+                if (server) {
+                    apiBase = server.apiBase;
+                    token = server.token;
+                }
+            }
+
+            const endpoint = `${apiBase}/api/v1/override/atlas/memory`;
+            
+            if (action === 'list') {
+                const response = await fetch(endpoint, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                return await response.json();
+            } else if (action === 'read') {
+                const response = await fetch(`${endpoint}/${filename}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                return await response.json();
+            } else if (action === 'write') {
+                const response = await fetch(`${endpoint}/${filename}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ content })
+                });
+                return await response.json();
+            } else if (action === 'delete') {
+                const response = await fetch(`${endpoint}/${filename}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Atlas memory error:', error);
+            return [];
+        }
+    });
+}
