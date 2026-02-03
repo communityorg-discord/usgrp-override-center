@@ -72,7 +72,7 @@ const allTabs = tabGroups.flatMap(g => g.tabs);
 export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onImpersonate }) {
     const location = useLocation();
     const [showMore, setShowMore] = useState(false);
-    const [visibleTabs, setVisibleTabs] = useState(10);
+    const [visibleTabs, setVisibleTabs] = useState(8);
     const containerRef = useRef(null);
     const moreMenuRef = useRef(null);
     
@@ -101,7 +101,7 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
             ref={containerRef}
         >
             {/* Left: Navigation Tabs */}
-            <div className="flex items-center gap-0.5 flex-1 overflow-hidden">
+            <div className="flex items-center gap-0.5 flex-1 overflow-visible">
                 {displayedTabs.map((tab, index) => {
                     const isActive = location.pathname === tab.path;
                     return (
@@ -140,7 +140,7 @@ export default function Toolbar({ currentPath, user, onLogout, onChatToggle, onI
                         
                         {showMore && (
                             <div 
-                                className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-2xl z-50 min-w-[180px] animate-fade-in"
+                                className="absolute top-full left-0 mt-1 py-2 rounded-xl shadow-2xl z-50 min-w-[180px] max-h-[70vh] overflow-y-auto animate-fade-in"
                                 style={{
                                     background: 'linear-gradient(145deg, rgba(22, 22, 38, 0.98) 0%, rgba(14, 14, 26, 0.99) 100%)',
                                     border: '1px solid rgba(255, 255, 255, 0.08)',

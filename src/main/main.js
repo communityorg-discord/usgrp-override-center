@@ -570,7 +570,17 @@ function setupIPC() {
     ipcMain.handle('shell:openExternal', (event, url) => shell.openExternal(url));
     
     // Auto updater
-    ipcMain.handle('updater:check', () => autoUpdater.checkForUpdatesAndNotify());
+    ipcMain.handle('updater:check', async () => {
+        try {
+            sendToRenderer('update-checking', {});
+            const result = await autoUpdater.checkForUpdatesAndNotify();
+            return result;
+        } catch (error) {
+            console.error('[AutoUpdater] Check failed:', error);
+            sendToRenderer('update-error', error.message || 'Failed to check for updates');
+            throw error;
+        }
+    });
     ipcMain.handle('updater:download', () => autoUpdater.downloadUpdate());
     ipcMain.handle('updater:install', () => {
         app.isQuitting = true;
