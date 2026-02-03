@@ -64,6 +64,13 @@ contextBridge.exposeInMainWorld('electron', {
         setAlwaysOnTop: (value) => ipcRenderer.invoke('settings:setAlwaysOnTop', value)
     },
 
+    // Config
+    config: {
+        list: () => ipcRenderer.invoke('config:list'),
+        read: (path) => ipcRenderer.invoke('config:read', path),
+        save: (path, content) => ipcRenderer.invoke('config:save', path, content)
+    },
+
     // Terminal
     terminal: {
         create: () => ipcRenderer.invoke('terminal:create'),
@@ -88,9 +95,12 @@ contextBridge.exposeInMainWorld('electron', {
             'quick-action',
             'navigate',
             'refresh',
+            'update-checking',
             'update-available',
+            'update-not-available',
             'update-downloaded',
             'update-error',
+            'update-progress',
             'auth-success'
         ];
         

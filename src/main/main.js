@@ -6,9 +6,11 @@
 
 const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, shell, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 const os = require('os');
+const fg = require('fast-glob');
 
 // Try to load node-pty for full terminal support
 let ptyModule;
@@ -492,6 +494,40 @@ function setupIPC() {
     ipcMain.handle('settings:setAlwaysOnTop', (event, value) => {
         store.set('alwaysOnTop', value);
         mainWindow.setAlwaysOnTop(value);
+    });
+
+    // Config Editor
+    ipcMain.handle('config:list', async () => {
+        if (!store.get('authToken')) throw new Error('Unauthorized');
+        try {
+            // Find .env files in /srv/usgrp/*/
+            // Using fast-glob
+            const files = await fg('/srv/usgrp/*/.env', { deep: 2 });
+            return files;
+        } catch (error) {
+            console.error('Config list error:', error);
+            // Fallback for dev/testing if /srv doesn't exist
+            if (isDev) return ['/tmp/test/.env', '/tmp/demo/.env'];
+            return [];
+        }
+    });
+
+    ipcMain.handle('config:read', async (event, filePath) => {
+        if (!store.get('authToken')) throw new Error('Unauthorized');
+        return fs.promises.readFile(filePath, 'utf8');
+    });
+
+    ipcMain.handle('config:save', async (event, filePath, content) => {
+        if (!store.get('authToken')) throw new Error('Unauthorized');
+        // Backup
+        try {
+            const backupPath = `${filePath}.bak.${Date.now()}`;
+            await fs.promises.copyFile(filePath, backupPath);
+        } catch (e) {
+            console.warn('Backup failed:', e);
+        }
+        await fs.promises.writeFile(filePath, content, 'utf8');
+        return true;
     });
 }
 

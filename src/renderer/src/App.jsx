@@ -20,6 +20,9 @@ import DiscordManager from './pages/DiscordManager';
 import BanManager from './pages/BanManager';
 import LogAggregator from './pages/LogAggregator';
 import ApiKeyManager from './pages/ApiKeyManager';
+import QuickCommands from './pages/QuickCommands';
+import Metrics from './pages/Metrics';
+import ConfigEditor from './pages/ConfigEditor';
 import ServiceHealth from './pages/ServiceHealth';
 import Chat from './components/Chat';
 import Login from './pages/Login';
@@ -268,6 +271,9 @@ export default function App() {
                         <Route path="/bans" element={<BanManager />} />
                         <Route path="/logs" element={<LogAggregator />} />
                         <Route path="/apikeys" element={<ApiKeyManager />} />
+                        <Route path="/quick-commands" element={<QuickCommands />} />
+                        <Route path="/metrics" element={<Metrics />} />
+                        <Route path="/config" element={<ConfigEditor />} />
                         <Route path="/health" element={<ServiceHealth />} />
                         <Route path="/settings" element={<Settings />} />
                     </Routes>

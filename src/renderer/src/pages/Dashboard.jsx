@@ -10,6 +10,8 @@ export default function Dashboard() {
     const [lastUpdate, setLastUpdate] = useState(null);
     const [actionLoading, setActionLoading] = useState(null);
     const [connectionStatus, setConnectionStatus] = useState('connecting');
+    const [previousStatus, setPreviousStatus] = useState({});
+    const [alerts, setAlerts] = useState([]);
 
     useEffect(() => {
         loadData();
@@ -34,6 +36,23 @@ export default function Dashboard() {
                 const totalCpu = pm2Data.processes.reduce((sum, p) => sum + (p.cpu || 0), 0);
                 
                 setStats({ online, offline, totalMemory, totalCpu: Math.round(totalCpu) });
+
+                // Alert Logic
+                const currentStatus = {};
+                const newAlerts = [];
+                pm2Data.processes.forEach(p => {
+                    currentStatus[p.name] = p.status;
+                    if (p.status !== 'online') {
+                        newAlerts.push(`${p.name} is ${p.status}`);
+                    }
+                    
+                    // Check transition
+                    if (previousStatus[p.name] && previousStatus[p.name] === 'online' && p.status !== 'online') {
+                         new Notification('Service Alert', { body: `${p.name} has stopped!`, icon: 'build/icon.png' });
+                    }
+                });
+                setPreviousStatus(currentStatus);
+                setAlerts(newAlerts);
             }
 
             if (sysData) {
@@ -143,6 +162,28 @@ export default function Dashboard() {
             </div>
 
             {/* Error Banner */}
+            {alerts.length > 0 && (
+                <div 
+                    className="p-4 rounded-xl animate-pulse"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.1) 100%)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)'
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                            <h3 className="text-red-400 font-bold">System Alert</h3>
+                            <p className="text-red-300/80 text-sm">
+                                {alerts.length} service{alerts.length > 1 ? 's' : ''} reported offline: {alerts.slice(0, 3).join(', ')}{alerts.length > 3 ? '...' : ''}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {error && (
                 <div 
                     className="p-4 rounded-xl animate-fade-in"
