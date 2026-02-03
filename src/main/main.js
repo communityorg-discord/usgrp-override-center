@@ -112,6 +112,24 @@ function createWindow() {
         show: false // Show when ready
     });
 
+    // Set Content Security Policy to allow Google Fonts and GitHub API
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': [
+                    "default-src 'self'; " +
+                    "script-src 'self' 'unsafe-inline'; " +
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                    "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                    "font-src 'self' https://fonts.gstatic.com; " +
+                    "img-src 'self' data: https:; " +
+                    "connect-src 'self' https://api.usgrp.xyz wss://api.usgrp.xyz https://api.github.com https://github.com;"
+                ]
+            }
+        });
+    });
+
     // Load content
     if (isDev) {
         mainWindow.loadURL('http://localhost:5173');
