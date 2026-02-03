@@ -170,6 +170,68 @@ function createWindow() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// APPLICATION MENU (View/Zoom controls)
+// ═══════════════════════════════════════════════════════════════
+
+function createApplicationMenu() {
+    const template = [
+        {
+            label: 'File',
+            submenu: [
+                { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => sendToRenderer('navigate', '/settings') },
+                { type: 'separator' },
+                { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: () => { app.isQuitting = true; app.quit(); } }
+            ]
+        },
+        {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'selectAll' }
+            ]
+        },
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload', accelerator: 'CmdOrCtrl+R' },
+                { role: 'forceReload', accelerator: 'CmdOrCtrl+Shift+R' },
+                { type: 'separator' },
+                { role: 'zoomIn', accelerator: 'CmdOrCtrl+=' },
+                { role: 'zoomOut', accelerator: 'CmdOrCtrl+-' },
+                { role: 'resetZoom', accelerator: 'CmdOrCtrl+0' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' },
+                { type: 'separator' },
+                { role: 'toggleDevTools', accelerator: 'F12' }
+            ]
+        },
+        {
+            label: 'Window',
+            submenu: [
+                { role: 'minimize' },
+                { role: 'close' }
+            ]
+        },
+        {
+            label: 'Help',
+            submenu: [
+                { label: 'Check for Updates', click: () => sendToRenderer('trigger-update-check') },
+                { type: 'separator' },
+                { label: 'About', click: () => sendToRenderer('show-about') }
+            ]
+        }
+    ];
+    
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SYSTEM TRAY
 // ═══════════════════════════════════════════════════════════════
 
@@ -808,6 +870,7 @@ app.on('open-url', (event, url) => {
 app.whenReady().then(() => {
     createWindow();
     createTray();
+    createApplicationMenu();
     checkScheduledDeploys();
     registerShortcuts();
     setupIPC();
