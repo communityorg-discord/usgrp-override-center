@@ -135,7 +135,7 @@ export default function App() {
                 } catch (e) { return '212, 175, 55'; }
             };
             
-            const darkenHex = (hex, factor = 0.1) => {
+            const darkenHex = (hex, factor = 0.15) => {
                 try {
                     let r = parseInt(hex.slice(1, 3), 16);
                     let g = parseInt(hex.slice(3, 5), 16);
@@ -159,14 +159,30 @@ export default function App() {
             root.style.setProperty('--gold-light', gradientColor2);
             root.style.setProperty('--accent', gradientColor1);
             
-            // Apply background gradient tint (for dark themes)
+            // Apply PROMINENT background gradient (for dark themes)
             if (themeMode !== 'light') {
-                const bgTint1 = darkenHex(gradientColor1, 0.05);
-                const bgTint2 = darkenHex(gradientColor2, 0.03);
-                root.style.setProperty('--bg-gradient-tint', `linear-gradient(135deg, ${bgTint1}, ${bgTint2})`);
-                root.style.setProperty('--border-accent', `rgba(${hexToRgb(gradientColor1)}, 0.15)`);
-                root.style.setProperty('--border-active', `rgba(${hexToRgb(gradientColor1)}, 0.3)`);
-                root.style.setProperty('--shadow-glow', `0 0 30px rgba(${hexToRgb(gradientColor1)}, 0.15)`);
+                const bgColor1 = darkenHex(gradientColor1, 0.12);
+                const bgColor2 = darkenHex(gradientColor2, 0.08);
+                const bgColor3 = darkenHex(gradientColor1, 0.06);
+                
+                // Set actual background colors based on gradient - STAND OUT
+                root.style.setProperty('--bg-primary', bgColor3);
+                root.style.setProperty('--bg-secondary', bgColor2);
+                root.style.setProperty('--bg-tertiary', bgColor1);
+                
+                root.style.setProperty('--bg-gradient-tint', `linear-gradient(135deg, ${bgColor1} 0%, ${bgColor3} 50%, ${bgColor2} 100%)`);
+                root.style.setProperty('--bg-card', `rgba(${hexToRgb(gradientColor1)}, 0.08)`);
+                root.style.setProperty('--bg-elevated', `rgba(${hexToRgb(gradientColor1)}, 0.12)`);
+                
+                // Borders with gradient color - MORE VISIBLE
+                root.style.setProperty('--border-subtle', `rgba(${hexToRgb(gradientColor1)}, 0.15)`);
+                root.style.setProperty('--border-default', `rgba(${hexToRgb(gradientColor1)}, 0.25)`);
+                root.style.setProperty('--border-hover', `rgba(${hexToRgb(gradientColor1)}, 0.4)`);
+                root.style.setProperty('--border-active', `rgba(${hexToRgb(gradientColor1)}, 0.5)`);
+                
+                // Strong glow effects
+                root.style.setProperty('--shadow-glow', `0 0 40px rgba(${hexToRgb(gradientColor1)}, 0.25)`);
+                root.style.setProperty('--shadow-glow-gold', `0 0 50px rgba(${hexToRgb(gradientColor1)}, 0.3)`);
             }
             
             // Apply saturation
