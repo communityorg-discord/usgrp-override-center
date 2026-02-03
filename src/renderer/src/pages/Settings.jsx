@@ -102,14 +102,33 @@ export default function Settings() {
         
         // Function to hex to rgb
         const hexToRgb = (hex) => {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return `${r}, ${g}, ${b}`;
+            try {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `${r}, ${g}, ${b}`;
+            } catch (e) {
+                return '212, 175, 55';
+            }
+        };
+        
+        // Function to darken a hex color for background
+        const darkenHex = (hex, factor = 0.1) => {
+            try {
+                let r = parseInt(hex.slice(1, 3), 16);
+                let g = parseInt(hex.slice(3, 5), 16);
+                let b = parseInt(hex.slice(5, 7), 16);
+                r = Math.floor(r * factor);
+                g = Math.floor(g * factor);
+                b = Math.floor(b * factor);
+                return `rgb(${r}, ${g}, ${b})`;
+            } catch (e) {
+                return '#0a0a10';
+            }
         };
         
         // Apply theme mode
-        root.classList.remove('dark-theme', 'light-theme', 'oled-theme');
+        root.classList.remove('dark-theme', 'light-theme', 'oled-theme', 'midnight-theme');
         root.classList.add(`${settings.themeMode}-theme`);
         
         // Apply gradient
@@ -124,6 +143,21 @@ export default function Settings() {
         root.style.setProperty('--gold', settings.gradientColor1);
         root.style.setProperty('--gold-light', settings.gradientColor2);
         root.style.setProperty('--accent', settings.gradientColor1);
+        
+        // Apply subtle gradient tint to backgrounds (if not light theme)
+        if (settings.themeMode !== 'light') {
+            // Create very dark versions of the gradient colors for backgrounds
+            const bgTint1 = darkenHex(settings.gradientColor1, 0.05);
+            const bgTint2 = darkenHex(settings.gradientColor2, 0.03);
+            root.style.setProperty('--bg-gradient-tint', `linear-gradient(135deg, ${bgTint1}, ${bgTint2})`);
+            
+            // Apply border accent
+            root.style.setProperty('--border-accent', `rgba(${hexToRgb(settings.gradientColor1)}, 0.15)`);
+            root.style.setProperty('--border-active', `rgba(${hexToRgb(settings.gradientColor1)}, 0.3)`);
+            
+            // Apply glow effect
+            root.style.setProperty('--shadow-glow', `0 0 30px rgba(${hexToRgb(settings.gradientColor1)}, 0.15)`);
+        }
         
         // Apply saturation
         root.style.setProperty('--saturation', `${settings.saturation}%`);

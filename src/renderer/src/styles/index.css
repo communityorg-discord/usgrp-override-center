@@ -82,18 +82,20 @@
 
 body {
     background: var(--bg-primary);
+    background-image: var(--bg-gradient-tint, none);
     color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.3s ease, background-image 0.3s ease, color 0.3s ease;
 }
 
 /* Ensure html element also gets the background */
 html {
     background: var(--bg-primary);
+    background-image: var(--bg-gradient-tint, none);
     min-height: 100vh;
 }
 
@@ -219,11 +221,11 @@ html.midnight-theme {
 .card {
     @apply rounded-xl p-5;
     background: linear-gradient(145deg, 
-        rgba(16, 16, 28, 0.8) 0%, 
+        rgba(calc(var(--gradient-color-1-rgb, 16, 16, 28)), 0.08) 0%, 
         rgba(10, 10, 18, 0.9) 100%
     );
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-accent, var(--border-subtle));
+    box-shadow: var(--shadow-md), var(--shadow-glow, none);
     transition: all var(--transition-normal);
     position: relative;
     overflow: hidden;

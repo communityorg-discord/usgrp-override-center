@@ -134,6 +134,18 @@ export default function App() {
                     return `${r}, ${g}, ${b}`;
                 } catch (e) { return '212, 175, 55'; }
             };
+            
+            const darkenHex = (hex, factor = 0.1) => {
+                try {
+                    let r = parseInt(hex.slice(1, 3), 16);
+                    let g = parseInt(hex.slice(3, 5), 16);
+                    let b = parseInt(hex.slice(5, 7), 16);
+                    r = Math.floor(r * factor);
+                    g = Math.floor(g * factor);
+                    b = Math.floor(b * factor);
+                    return `rgb(${r}, ${g}, ${b})`;
+                } catch (e) { return '#0a0a10'; }
+            };
 
             const gradient = `linear-gradient(${gradientAngle}deg, ${gradientColor1}, ${gradientColor2})`;
             root.style.setProperty('--gradient-primary', gradient);
@@ -144,7 +156,18 @@ export default function App() {
             
             // Apply accent color
             root.style.setProperty('--gold', gradientColor1);
+            root.style.setProperty('--gold-light', gradientColor2);
             root.style.setProperty('--accent', gradientColor1);
+            
+            // Apply background gradient tint (for dark themes)
+            if (themeMode !== 'light') {
+                const bgTint1 = darkenHex(gradientColor1, 0.05);
+                const bgTint2 = darkenHex(gradientColor2, 0.03);
+                root.style.setProperty('--bg-gradient-tint', `linear-gradient(135deg, ${bgTint1}, ${bgTint2})`);
+                root.style.setProperty('--border-accent', `rgba(${hexToRgb(gradientColor1)}, 0.15)`);
+                root.style.setProperty('--border-active', `rgba(${hexToRgb(gradientColor1)}, 0.3)`);
+                root.style.setProperty('--shadow-glow', `0 0 30px rgba(${hexToRgb(gradientColor1)}, 0.15)`);
+            }
             
             // Apply saturation
             root.style.setProperty('--saturation', `${saturation}%`);
