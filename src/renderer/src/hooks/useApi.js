@@ -21,6 +21,10 @@ export function useApi() {
             const token = await window.electron.api.getToken();
             const impersonateUser = localStorage.getItem('impersonateUser');
 
+            // Debug logging
+            console.log(`[useApi] ${endpoint} -> ${apiBase}${endpoint}`);
+            console.log(`[useApi] Token: ${token ? token.substring(0, 15) + '...' : 'NONE'}`);
+
             const headers = {
                 'Content-Type': 'application/json',
                 'X-Override-Token': token,
@@ -36,6 +40,8 @@ export function useApi() {
                 headers
             });
 
+            console.log(`[useApi] Response: ${response.status} ${response.statusText}`);
+
             // Check content type before parsing
             const contentType = response.headers.get('content-type') || '';
             let data;
@@ -44,20 +50,22 @@ export function useApi() {
                 data = await response.json();
             } else {
                 const text = await response.text();
+                console.log(`[useApi] Non-JSON response (${contentType}):`, text.substring(0, 200));
                 // If it's HTML, extract error message
                 if (text.includes('<!DOCTYPE') || text.includes('<html')) {
                     const match = text.match(/<pre>([^<]+)<\/pre>/);
-                    throw new Error(match ? match[1] : 'Server returned HTML instead of JSON');
+                    throw new Error(match ? match[1] : `Server returned HTML (${response.status}): Check console for details`);
                 }
                 data = { error: text };
             }
 
             if (!response.ok) {
-                throw new Error(data.message || data.error || 'Request failed');
+                throw new Error(data.message || data.error || `Request failed: ${response.status}`);
             }
 
             return data;
         } catch (err) {
+            console.error(`[useApi] Error:`, err);
             setError(err.message);
             throw err;
         } finally {

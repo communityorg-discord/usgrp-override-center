@@ -348,6 +348,20 @@ function registerShortcuts() {
             sendToRenderer('refresh');
         }
     });
+    
+    // F12 - Toggle DevTools (works in production too)
+    globalShortcut.register('F12', () => {
+        if (mainWindow.isFocused()) {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
+    
+    // Ctrl+Shift+I - Also toggle DevTools
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+        if (mainWindow.isFocused()) {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
