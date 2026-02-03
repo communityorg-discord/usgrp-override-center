@@ -888,30 +888,48 @@ async function checkAndAutoDownload() {
         if (isNewer) {
             console.log('[AutoUpdate] New version found, starting auto-download...');
             
-            const exeAsset = release.assets.find(a => a.name.endsWith('.exe') && a.name.includes('Setup'));
-            if (!exeAsset) {
-                console.log('[AutoUpdate] No installer found in release');
+            // Detect platform and find appropriate asset
+            const isMac = process.platform === 'darwin';
+            const isWin = process.platform === 'win32';
+            const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+            
+            let updateAsset;
+            if (isMac) {
+                // Look for DMG matching architecture
+                updateAsset = release.assets.find(a => 
+                    a.name.endsWith('.dmg') && a.name.includes(arch)
+                );
+                // Fallback to any DMG
+                if (!updateAsset) {
+                    updateAsset = release.assets.find(a => a.name.endsWith('.dmg'));
+                }
+            } else if (isWin) {
+                updateAsset = release.assets.find(a => a.name.endsWith('.exe') && a.name.includes('Setup'));
+            }
+            
+            if (!updateAsset) {
+                console.log('[AutoUpdate] No installer found for this platform');
                 return;
             }
             
             // Store for later and notify
             global.pendingUpdate = {
                 version: latestVersion,
-                downloadUrl: exeAsset.browser_download_url,
-                fileName: exeAsset.name
+                downloadUrl: updateAsset.browser_download_url,
+                fileName: updateAsset.name
             };
             
             sendToRenderer('update-available', {
                 version: latestVersion,
                 releaseNotes: release.body,
-                downloadUrl: exeAsset.browser_download_url,
-                fileName: exeAsset.name,
-                fileSize: exeAsset.size,
+                downloadUrl: updateAsset.browser_download_url,
+                fileName: updateAsset.name,
+                fileSize: updateAsset.size,
                 autoDownloading: true
             });
             
             // Auto-download
-            const tempPath = path.join(app.getPath('temp'), exeAsset.name);
+            const tempPath = path.join(app.getPath('temp'), updateAsset.name);
             console.log(`[AutoUpdate] Downloading to: ${tempPath}`);
             
             const https = require('https');
@@ -956,7 +974,7 @@ async function checkAndAutoDownload() {
                         });
                     }).on('error', reject);
                 }
-                download(exeAsset.browser_download_url);
+                download(updateAsset.browser_download_url);
             });
             
         } else {
@@ -1601,12 +1619,22 @@ function setupIPC() {
         console.log(`[UpdateChecker] Running installer: ${installerPath}`);
         
         try {
-            // Run installer silently
             const { spawn } = require('child_process');
-            spawn(installerPath, ['/S'], {
-                detached: true,
-                stdio: 'ignore'
-            }).unref();
+            const isMac = process.platform === 'darwin';
+            
+            if (isMac) {
+                // Mount DMG and open it for user to drag to Applications
+                spawn('open', [installerPath], {
+                    detached: true,
+                    stdio: 'ignore'
+                }).unref();
+            } else {
+                // Windows: Run installer silently
+                spawn(installerPath, ['/S'], {
+                    detached: true,
+                    stdio: 'ignore'
+                }).unref();
+            }
             
             // Quit app so installer can replace files
             setTimeout(() => {
