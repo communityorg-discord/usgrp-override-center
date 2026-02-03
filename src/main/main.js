@@ -2042,14 +2042,17 @@ function setupAtlasBrainConfig() {
                 }
             }
 
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'X-Override-Token': token,
+                'Content-Type': 'application/json'
+            };
+
             if (newConfig) {
                 // Save config
                 const response = await fetch(`${apiBase}/api/v1/override/atlas/config`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers,
                     body: JSON.stringify(newConfig)
                 });
                 const data = await response.json();
@@ -2057,7 +2060,7 @@ function setupAtlasBrainConfig() {
             } else {
                 // Get config
                 const response = await fetch(`${apiBase}/api/v1/override/atlas/config`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers
                 });
                 const data = await response.json();
                 return data;
@@ -2089,32 +2092,31 @@ function setupAtlasBrainConfig() {
                 }
             }
 
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'X-Override-Token': token,
+                'Content-Type': 'application/json'
+            };
+
             const endpoint = `${apiBase}/api/v1/override/atlas/memory`;
             
             if (action === 'list') {
-                const response = await fetch(endpoint, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(endpoint, { headers });
                 return await response.json();
             } else if (action === 'read') {
-                const response = await fetch(`${endpoint}/${filename}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(`${endpoint}/${filename}`, { headers });
                 return await response.json();
             } else if (action === 'write') {
                 const response = await fetch(`${endpoint}/${filename}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers,
                     body: JSON.stringify({ content })
                 });
                 return await response.json();
             } else if (action === 'delete') {
                 const response = await fetch(`${endpoint}/${filename}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers
                 });
                 return await response.json();
             }
