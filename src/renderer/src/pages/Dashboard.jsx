@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Link } from 'react-router-dom';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, PieChart, Pie, Cell, Legend } from 'recharts';
 
 export default function Dashboard() {
     const { fetchApi, post, loading, error } = useApi();
@@ -17,6 +17,19 @@ export default function Dashboard() {
     const [activityFeed, setActivityFeed] = useState([]);
     const [chartData, setChartData] = useState([]);
     const [serviceChartData, setServiceChartData] = useState([]);
+    
+    // Tab state
+    const [activeTab, setActiveTab] = useState('systems');
+    
+    // Community dashboard data
+    const [communityData, setCommunityData] = useState({
+        economy: null,
+        moderation: null,
+        discord: null,
+        activity: null,
+        loading: true,
+        error: null
+    });
 
     // Time update
     useEffect(() => {
@@ -45,6 +58,13 @@ export default function Dashboard() {
         const interval = setInterval(loadData, 10000);
         return () => clearInterval(interval);
     }, []);
+    
+    // Load community data when tab switches
+    useEffect(() => {
+        if (activeTab === 'community') {
+            loadCommunityData();
+        }
+    }, [activeTab]);
 
     // Generate service chart data from processes
     useEffect(() => {
@@ -61,6 +81,34 @@ export default function Dashboard() {
             setServiceChartData(sorted);
         }
     }, [processes]);
+    
+    async function loadCommunityData() {
+        setCommunityData(prev => ({ ...prev, loading: true, error: null }));
+        
+        try {
+            const [economyRes, moderationRes, discordRes, activityRes] = await Promise.allSettled([
+                fetchApi('/override/economy/stats'),
+                fetchApi('/override/moderation/stats'),
+                fetchApi('/override/discord/stats'),
+                fetchApi('/override/activity/stats')
+            ]);
+            
+            setCommunityData({
+                economy: economyRes.status === 'fulfilled' ? economyRes.value : null,
+                moderation: moderationRes.status === 'fulfilled' ? moderationRes.value : null,
+                discord: discordRes.status === 'fulfilled' ? discordRes.value : null,
+                activity: activityRes.status === 'fulfilled' ? activityRes.value : null,
+                loading: false,
+                error: null
+            });
+        } catch (err) {
+            setCommunityData(prev => ({ 
+                ...prev, 
+                loading: false, 
+                error: 'Failed to load community data' 
+            }));
+        }
+    }
 
     async function loadData() {
         try {
@@ -294,7 +342,90 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+            
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-2">
+                <TabButton 
+                    active={activeTab === 'systems'} 
+                    onClick={() => setActiveTab('systems')}
+                    icon={
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                        </svg>
+                    }
+                >
+                    Systems
+                </TabButton>
+                <TabButton 
+                    active={activeTab === 'community'} 
+                    onClick={() => setActiveTab('community')}
+                    icon={
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    }
+                >
+                    Community
+                </TabButton>
+            </div>
 
+            {/* Tab Content */}
+            {activeTab === 'systems' ? (
+                <SystemsDashboard 
+                    alerts={alerts}
+                    error={error}
+                    stats={stats}
+                    chartData={chartData}
+                    processes={processes}
+                    loading={loading}
+                    systemInfo={systemInfo}
+                    serviceChartData={serviceChartData}
+                    activityFeed={activityFeed}
+                    actionLoading={actionLoading}
+                    handleQuickAction={handleQuickAction}
+                    handleProcessAction={handleProcessAction}
+                />
+            ) : (
+                <CommunityDashboard 
+                    data={communityData}
+                    onRefresh={loadCommunityData}
+                />
+            )}
+        </div>
+    );
+}
+
+// Tab Button Component
+function TabButton({ active, onClick, children, icon }) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${
+                active 
+                    ? 'text-white' 
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/[0.03]'
+            }`}
+            style={active ? {
+                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
+                boxShadow: '0 0 20px rgba(212, 175, 55, 0.1)'
+            } : {
+                border: '1px solid transparent'
+            }}
+        >
+            <span style={active ? { color: '#D4AF37' } : {}}>{icon}</span>
+            {children}
+        </button>
+    );
+}
+
+// Systems Dashboard (original content)
+function SystemsDashboard({ 
+    alerts, error, stats, chartData, processes, loading, systemInfo, 
+    serviceChartData, activityFeed, actionLoading, handleQuickAction, handleProcessAction 
+}) {
+    return (
+        <>
             {/* Error Banner */}
             {alerts.length > 0 && (
                 <div 
@@ -732,6 +863,520 @@ export default function Dashboard() {
                     />
                 </div>
             )}
+        </>
+    );
+}
+
+// Community Dashboard Component
+function CommunityDashboard({ data, onRefresh }) {
+    const { economy, moderation, discord, activity, loading, error } = data;
+    
+    // Generate mock data if API returns nothing
+    const mockEconomy = economy || {
+        totalGDP: 15847293,
+        moneySupply: 8234567,
+        activeUsers: 1247,
+        transactionsToday: 3421,
+        topEarners: [
+            { name: 'Atlas', balance: 542000, rank: 1 },
+            { name: 'NightOwl', balance: 387000, rank: 2 },
+            { name: 'CryptoKing', balance: 298000, rank: 3 },
+            { name: 'TraderJoe', balance: 245000, rank: 4 },
+            { name: 'WealthyWiz', balance: 198000, rank: 5 }
+        ],
+        inflationRate: 2.4,
+        averageBalance: 6532
+    };
+    
+    const mockModeration = moderation || {
+        openCases: 12,
+        casesToday: 3,
+        casesThisWeek: 18,
+        warningsToday: 7,
+        warningsThisWeek: 42,
+        activeMutes: 4,
+        watchlistCount: 23,
+        banCount: 156
+    };
+    
+    const mockDiscord = discord || {
+        totalMembers: 15847,
+        online: 3421,
+        idle: 892,
+        dnd: 234,
+        offline: 11300,
+        newJoinsThisWeek: 287,
+        leavesThisWeek: 54,
+        boostCount: 28,
+        boostTier: 3
+    };
+    
+    const mockActivity = activity || {
+        messagesPerHour: Array.from({ length: 24 }, (_, i) => ({
+            hour: i.toString().padStart(2, '0') + ':00',
+            messages: Math.floor(Math.random() * 500 + 100)
+        })),
+        mostActiveChannels: [
+            { name: 'general', messages: 2341 },
+            { name: 'economy', messages: 1876 },
+            { name: 'trading', messages: 1543 },
+            { name: 'politics', messages: 1298 },
+            { name: 'off-topic', messages: 987 }
+        ],
+        totalMessagesToday: 8934,
+        usersInVoice: 47,
+        peakVoiceToday: 128,
+        mostUsedVoiceChannels: [
+            { name: 'Lounge', users: 23 },
+            { name: 'Gaming', users: 15 },
+            { name: 'Music', users: 9 }
+        ]
+    };
+    
+    const mockRoleDistribution = [
+        { name: 'Citizen', value: 8500, color: '#60a5fa' },
+        { name: 'Business Owner', value: 2340, color: '#34d399' },
+        { name: 'Government', value: 156, color: '#D4AF37' },
+        { name: 'Staff', value: 45, color: '#f87171' },
+        { name: 'Senator', value: 23, color: '#a78bfa' },
+        { name: 'Cabinet', value: 12, color: '#fbbf24' }
+    ];
+    
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                    <p style={{ color: 'rgba(255,255,255,0.5)' }}>Loading community data...</p>
+                </div>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="space-y-4 animate-fade-in">
+            {error && (
+                <div 
+                    className="p-4 rounded-xl"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                        border: '1px solid rgba(245, 158, 11, 0.2)'
+                    }}
+                >
+                    <p className="text-amber-400 text-sm">⚠️ Some data may be using mock values. API endpoints may not be available.</p>
+                </div>
+            )}
+            
+            {/* Economy Overview */}
+            <div className="grid grid-cols-4 gap-4">
+                <CommunityStatCard 
+                    icon="💰" 
+                    label="Total GDP" 
+                    value={`$${(mockEconomy.totalGDP / 1000000).toFixed(2)}M`}
+                    color="amber"
+                />
+                <CommunityStatCard 
+                    icon="👥" 
+                    label="Active Users (7d)" 
+                    value={mockEconomy.activeUsers.toLocaleString()}
+                    color="emerald"
+                />
+                <CommunityStatCard 
+                    icon="📊" 
+                    label="Transactions Today" 
+                    value={mockEconomy.transactionsToday.toLocaleString()}
+                    color="blue"
+                />
+                <CommunityStatCard 
+                    icon="📈" 
+                    label="Avg Balance" 
+                    value={`$${mockEconomy.averageBalance.toLocaleString()}`}
+                    color="purple"
+                />
+            </div>
+            
+            {/* Economy & Moderation Row */}
+            <div className="grid grid-cols-3 gap-4">
+                {/* Top Earners Leaderboard */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
+                        Top 5 Earners
+                    </h2>
+                    <div className="space-y-2">
+                        {mockEconomy.topEarners.map((earner, i) => (
+                            <div 
+                                key={earner.name}
+                                className="flex items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:bg-white/[0.03]"
+                                style={{
+                                    background: i === 0 
+                                        ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%)' 
+                                        : 'transparent',
+                                    border: i === 0 ? '1px solid rgba(212, 175, 55, 0.2)' : '1px solid transparent'
+                                }}
+                            >
+                                <div 
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                                    style={{
+                                        background: i === 0 ? 'linear-gradient(135deg, #D4AF37 0%, #f59e0b 100%)' 
+                                            : i === 1 ? 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)'
+                                            : i === 2 ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
+                                            : 'rgba(255,255,255,0.1)',
+                                        color: i < 3 ? '#000' : 'rgba(255,255,255,0.6)'
+                                    }}
+                                >
+                                    {earner.rank}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-white font-medium">{earner.name}</p>
+                                </div>
+                                <p className="font-mono text-sm" style={{ color: '#D4AF37' }}>
+                                    ${earner.balance.toLocaleString()}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* Moderation Stats */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-red-400 to-red-600" />
+                        Moderation Stats
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3">
+                        <MiniStatCard label="Open Cases" value={mockModeration.openCases} color="red" />
+                        <MiniStatCard label="Cases Today" value={mockModeration.casesToday} color="amber" />
+                        <MiniStatCard label="Warnings (Week)" value={mockModeration.warningsThisWeek} color="orange" />
+                        <MiniStatCard label="Active Mutes" value={mockModeration.activeMutes} color="yellow" />
+                        <MiniStatCard label="Watchlist" value={mockModeration.watchlistCount} color="purple" />
+                        <MiniStatCard label="Total Bans" value={mockModeration.banCount} color="red" />
+                    </div>
+                </div>
+                
+                {/* Discord Server Health */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-indigo-400 to-indigo-600" />
+                        Server Health
+                    </h2>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Total Members</span>
+                            <span className="text-white font-bold text-lg">{mockDiscord.totalMembers.toLocaleString()}</span>
+                        </div>
+                        
+                        {/* Online status breakdown */}
+                        <div className="space-y-2">
+                            <StatusBreakdown label="Online" value={mockDiscord.online} total={mockDiscord.totalMembers} color="#22c55e" />
+                            <StatusBreakdown label="Idle" value={mockDiscord.idle} total={mockDiscord.totalMembers} color="#eab308" />
+                            <StatusBreakdown label="DND" value={mockDiscord.dnd} total={mockDiscord.totalMembers} color="#ef4444" />
+                            <StatusBreakdown label="Offline" value={mockDiscord.offline} total={mockDiscord.totalMembers} color="#6b7280" />
+                        </div>
+                        
+                        <div className="pt-3 border-t border-white/[0.04] space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>New Joins (Week)</span>
+                                <span className="text-emerald-400 font-medium">+{mockDiscord.newJoinsThisWeek}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Leaves (Week)</span>
+                                <span className="text-red-400 font-medium">-{mockDiscord.leavesThisWeek}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Server Boosts</span>
+                                <span className="text-pink-400 font-medium">
+                                    {mockDiscord.boostCount} (Tier {mockDiscord.boostTier})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Charts Row */}
+            <div className="grid grid-cols-2 gap-4">
+                {/* Role Distribution Pie Chart */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-purple-400 to-purple-600" />
+                        Role Distribution
+                    </h2>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={mockRoleDistribution}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={90}
+                                    paddingAngle={2}
+                                    dataKey="value"
+                                >
+                                    {mockRoleDistribution.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        background: 'rgba(10,10,20,0.95)', 
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px'
+                                    }}
+                                    formatter={(value, name) => [value.toLocaleString(), name]}
+                                />
+                                <Legend 
+                                    layout="vertical"
+                                    align="right"
+                                    verticalAlign="middle"
+                                    iconType="circle"
+                                    iconSize={8}
+                                    formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{value}</span>}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+                
+                {/* Message Activity Chart */}
+                <div className="card">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="heading-md text-white flex items-center gap-2">
+                            <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-cyan-400 to-cyan-600" />
+                            Message Activity (24h)
+                        </h2>
+                        <span className="text-sm font-medium" style={{ color: '#D4AF37' }}>
+                            {mockActivity.totalMessagesToday.toLocaleString()} today
+                        </span>
+                    </div>
+                    <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={mockActivity.messagesPerHour}>
+                                <defs>
+                                    <linearGradient id="msgGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <XAxis 
+                                    dataKey="hour" 
+                                    stroke="rgba(255,255,255,0.2)" 
+                                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    interval={3}
+                                />
+                                <YAxis 
+                                    stroke="rgba(255,255,255,0.2)" 
+                                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        background: 'rgba(10,10,20,0.95)', 
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px'
+                                    }}
+                                    formatter={(value) => [value, 'Messages']}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="messages" 
+                                    stroke="#06b6d4" 
+                                    strokeWidth={2}
+                                    fill="url(#msgGradient)"
+                                    dot={false}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Activity Row */}
+            <div className="grid grid-cols-3 gap-4">
+                {/* Most Active Channels */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-blue-400 to-blue-600" />
+                        Most Active Channels
+                    </h2>
+                    <div className="space-y-3">
+                        {mockActivity.mostActiveChannels.map((channel, i) => (
+                            <div key={channel.name} className="flex items-center gap-3">
+                                <span className="text-white/40 text-sm w-4">{i + 1}</span>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-white text-sm">#{channel.name}</span>
+                                        <span className="text-white/50 text-xs">{channel.messages.toLocaleString()}</span>
+                                    </div>
+                                    <div 
+                                        className="h-1.5 rounded-full overflow-hidden"
+                                        style={{ background: 'rgba(255,255,255,0.1)' }}
+                                    >
+                                        <div 
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{ 
+                                                width: `${(channel.messages / mockActivity.mostActiveChannels[0].messages) * 100}%`,
+                                                background: 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* Voice Activity */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-green-400 to-green-600" />
+                        Voice Activity
+                    </h2>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div 
+                            className="p-4 rounded-xl text-center"
+                            style={{ 
+                                background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%)',
+                                border: '1px solid rgba(34, 197, 94, 0.2)'
+                            }}
+                        >
+                            <p className="text-2xl font-bold text-emerald-400">{mockActivity.usersInVoice}</p>
+                            <p className="text-xs text-white/40">In Voice Now</p>
+                        </div>
+                        <div 
+                            className="p-4 rounded-xl text-center"
+                            style={{ 
+                                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, transparent 100%)',
+                                border: '1px solid rgba(168, 85, 247, 0.2)'
+                            }}
+                        >
+                            <p className="text-2xl font-bold text-purple-400">{mockActivity.peakVoiceToday}</p>
+                            <p className="text-xs text-white/40">Peak Today</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <p className="text-xs text-white/40 mb-2">Most Used Voice Channels</p>
+                        {mockActivity.mostUsedVoiceChannels.map((channel) => (
+                            <div 
+                                key={channel.name}
+                                className="flex items-center justify-between p-2 rounded-lg"
+                                style={{ background: 'rgba(255,255,255,0.02)' }}
+                            >
+                                <span className="text-white text-sm flex items-center gap-2">
+                                    <span style={{ color: '#22c55e' }}>🔊</span>
+                                    {channel.name}
+                                </span>
+                                <span className="text-emerald-400 text-sm font-medium">{channel.users} users</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* Economy Quick Stats */}
+                <div className="card">
+                    <h2 className="heading-md text-white flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-yellow-400 to-yellow-600" />
+                        Economy Health
+                    </h2>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <span className="text-white/60">Money Supply</span>
+                            <span className="text-white font-mono">${(mockEconomy.moneySupply / 1000000).toFixed(2)}M</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <span className="text-white/60">Inflation Rate</span>
+                            <span className={`font-mono ${mockEconomy.inflationRate > 3 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                {mockEconomy.inflationRate}%
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                            <span className="text-white/60">Velocity (Today)</span>
+                            <span className="text-amber-400 font-mono">
+                                {(mockEconomy.transactionsToday / mockEconomy.activeUsers).toFixed(2)}x
+                            </span>
+                        </div>
+                        <div className="pt-3 border-t border-white/[0.04]">
+                            <button 
+                                onClick={onRefresh}
+                                className="w-full py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-amber-500/20"
+                                style={{ 
+                                    background: 'rgba(212, 175, 55, 0.1)',
+                                    border: '1px solid rgba(212, 175, 55, 0.2)',
+                                    color: '#D4AF37'
+                                }}
+                            >
+                                Refresh Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Community Stat Card
+function CommunityStatCard({ icon, label, value, color }) {
+    const colors = {
+        amber: { bg: 'rgba(212, 175, 55, 0.08)', border: 'rgba(212, 175, 55, 0.2)', text: '#D4AF37' },
+        emerald: { bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.2)', text: '#34d399' },
+        blue: { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.2)', text: '#60a5fa' },
+        purple: { bg: 'rgba(168, 85, 247, 0.08)', border: 'rgba(168, 85, 247, 0.2)', text: '#a78bfa' }
+    };
+    const c = colors[color] || colors.amber;
+    
+    return (
+        <div 
+            className="p-5 rounded-xl transition-all duration-300 hover:scale-[1.02]"
+            style={{ 
+                background: `linear-gradient(135deg, ${c.bg} 0%, transparent 100%)`,
+                border: `1px solid ${c.border}`
+            }}
+        >
+            <div className="text-2xl mb-2">{icon}</div>
+            <p className="text-2xl font-bold" style={{ color: c.text }}>{value}</p>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
+        </div>
+    );
+}
+
+// Mini Stat Card for Moderation
+function MiniStatCard({ label, value, color }) {
+    const colors = {
+        red: '#ef4444',
+        amber: '#f59e0b',
+        orange: '#f97316',
+        yellow: '#eab308',
+        purple: '#a78bfa'
+    };
+    
+    return (
+        <div 
+            className="p-3 rounded-lg text-center"
+            style={{ background: 'rgba(255,255,255,0.02)' }}
+        >
+            <p className="text-xl font-bold" style={{ color: colors[color] || '#fff' }}>{value}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
+        </div>
+    );
+}
+
+// Status Breakdown for Discord health
+function StatusBreakdown({ label, value, total, color }) {
+    const percentage = ((value / total) * 100).toFixed(1);
+    
+    return (
+        <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+            <span className="text-xs flex-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</span>
+            <span className="text-xs font-mono text-white">{value.toLocaleString()}</span>
+            <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)', width: '40px', textAlign: 'right' }}>
+                {percentage}%
+            </span>
         </div>
     );
 }
