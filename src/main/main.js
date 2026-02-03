@@ -111,8 +111,9 @@ function createWindow() {
         height: bounds.height,
         minWidth: 1200,
         minHeight: 700,
-        frame: false, // Frameless for custom title bar
-        titleBarStyle: 'hidden',
+        frame: isWin ? false : true, // Windows: frameless for custom title bar, Mac: use native frame
+        titleBarStyle: isMac ? 'hiddenInset' : 'hidden', // Mac: show traffic lights, Windows: hidden
+        trafficLightPosition: isMac ? { x: 16, y: 12 } : undefined, // Position traffic lights on Mac
         backgroundColor: '#0a0a0f',
         icon: path.join(__dirname, '../../build/icon.png'),
         webPreferences: {

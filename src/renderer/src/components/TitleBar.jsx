@@ -4,6 +4,7 @@ export default function TitleBar() {
     const [isMaximized, setIsMaximized] = useState(false);
     const [version, setVersion] = useState('');
     const [isHovered, setIsHovered] = useState(false);
+    const [isMac] = useState(() => window.electron?.mac?.isMac || false);
 
     useEffect(() => {
         checkMaximized();
@@ -38,6 +39,8 @@ export default function TitleBar() {
             className="titlebar h-10 flex items-center justify-between px-3 select-none relative"
             style={{
                 background: 'linear-gradient(180deg, rgba(16, 16, 28, 0.98) 0%, rgba(10, 10, 18, 0.98) 100%)',
+                // On Mac, add left padding for traffic lights
+                paddingLeft: isMac ? '80px' : '12px'
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -111,7 +114,8 @@ export default function TitleBar() {
                 </div>
             </div>
 
-            {/* Right: Window Controls */}
+            {/* Right: Window Controls (Windows only - Mac uses native traffic lights) */}
+            {!isMac && (
             <div className="flex items-center no-drag">
                 <WindowButton onClick={handleMinimize} title="Minimize">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,6 +141,7 @@ export default function TitleBar() {
                     </svg>
                 </WindowButton>
             </div>
+            )}
         </div>
     );
 }
