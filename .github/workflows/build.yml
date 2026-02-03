@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  repository_dispatch:
+    types: [gitea-release]
   workflow_dispatch:
     inputs:
       version:
@@ -20,6 +22,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,10 +48,21 @@ jobs:
             dist/*.yml
             dist/*.yaml
       
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'repository_dispatch'
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
           files: |
             dist/*.exe
             dist/latest.yml
@@ -56,12 +71,83 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  notify:
+  upload-to-gitea:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'repository_dispatch'
     
     steps:
-      - name: Send notification
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/
+      
+      - name: Get version
+        id: version
         run: |
-          echo "Release ${{ github.ref_name }} built successfully!"
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Gitea Release
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          
+          # Create release on Gitea
+          RELEASE_RESPONSE=$(curl -s -X POST "https://git.usgrp.xyz/api/v1/repos/usgrp/usgrp-override-center/releases" \
+            -H "Authorization: token $GITEA_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"tag_name\": \"$TAG\",
+              \"name\": \"$TAG\",
+              \"body\": \"Automated release from GitHub Actions\",
+              \"draft\": false,
+              \"prerelease\": false
+            }")
+          
+          RELEASE_ID=$(echo $RELEASE_RESPONSE | jq -r '.id')
+          echo "Created Gitea release ID: $RELEASE_ID"
+          
+          # Upload assets
+          for file in dist/*.exe dist/latest.yml; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              echo "Uploading $FILENAME..."
+              curl -s -X POST "https://git.usgrp.xyz/api/v1/repos/usgrp/usgrp-override-center/releases/$RELEASE_ID/assets?name=$FILENAME" \
+                -H "Authorization: token $GITEA_TOKEN" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary "@$file"
+            fi
+          done
+          
+          echo "✅ Release $TAG uploaded to Gitea"
+
+  notify:
+    needs: [build, upload-to-gitea]
+    runs-on: ubuntu-latest
+    if: always() && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'repository_dispatch')
+    
+    steps:
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Send WhatsApp notification
+        if: needs.build.result == 'success'
+        run: |
+          curl -s -X POST "https://admin.usgrp.xyz/api/notify" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"message\": \"✅ Override Center ${{ steps.version.outputs.tag }} built and uploaded to GitHub + Gitea\",
+              \"target\": \"+447780851817\"
+            }" || true
