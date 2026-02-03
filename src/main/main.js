@@ -663,13 +663,23 @@ function setupIPC() {
             const isNewer = compareVersions(latestVersion, currentVersion) > 0;
             
             if (isNewer) {
+                // Find the exe asset
+                const exeAsset = release.assets.find(a => a.name.endsWith('.exe') && a.name.includes('Setup'));
+                
                 sendToRenderer('update-available', {
                     version: latestVersion,
-                    releaseNotes: release.body
+                    releaseNotes: release.body,
+                    downloadUrl: exeAsset ? exeAsset.browser_download_url : null,
+                    fileName: exeAsset ? exeAsset.name : null,
+                    fileSize: exeAsset ? exeAsset.size : 0
                 });
                 
                 // Store for download
-                global.pendingUpdateVersion = latestVersion;
+                global.pendingUpdate = {
+                    version: latestVersion,
+                    downloadUrl: exeAsset ? exeAsset.browser_download_url : null,
+                    fileName: exeAsset ? exeAsset.name : null
+                };
             } else {
                 sendToRenderer('update-not-available', {});
             }
@@ -699,21 +709,137 @@ function setupIPC() {
         return 0;
     }
     
-    // Download uses electron-updater (the download part works, just not the check)
+    // Custom download - no electron-updater, just https
     ipcMain.handle('updater:download', async () => {
+        if (!global.pendingUpdate || !global.pendingUpdate.downloadUrl) {
+            sendToRenderer('update-error', 'No update available. Please check for updates first.');
+            return;
+        }
+        
+        const { downloadUrl, fileName, version } = global.pendingUpdate;
+        const tempPath = path.join(app.getPath('temp'), fileName || `USGRP-Update-${version}.exe`);
+        
+        console.log(`[UpdateChecker] Downloading from: ${downloadUrl}`);
+        console.log(`[UpdateChecker] Saving to: ${tempPath}`);
+        
         try {
-            sendToRenderer('update-progress', { percent: 0 });
-            await autoUpdater.downloadUpdate();
-            // download-progress and update-downloaded events will fire from setupAutoUpdater
+            sendToRenderer('update-progress', { percent: 0, status: 'Starting download...' });
+            
+            // Use https to download
+            const https = require('https');
+            const fs = require('fs');
+            
+            await new Promise((resolve, reject) => {
+                const file = fs.createWriteStream(tempPath);
+                
+                const request = https.get(downloadUrl, { 
+                    headers: { 'User-Agent': 'USGRP-Override-Center' }
+                }, (response) => {
+                    // Handle redirects (GitHub uses them)
+                    if (response.statusCode === 302 || response.statusCode === 301) {
+                        file.close();
+                        fs.unlinkSync(tempPath);
+                        
+                        https.get(response.headers.location, {
+                            headers: { 'User-Agent': 'USGRP-Override-Center' }
+                        }, (redirectResponse) => {
+                            const totalSize = parseInt(redirectResponse.headers['content-length'], 10);
+                            let downloadedSize = 0;
+                            
+                            const newFile = fs.createWriteStream(tempPath);
+                            
+                            redirectResponse.on('data', (chunk) => {
+                                downloadedSize += chunk.length;
+                                const percent = Math.round((downloadedSize / totalSize) * 100);
+                                sendToRenderer('update-progress', { 
+                                    percent, 
+                                    status: `Downloading... ${Math.round(downloadedSize / 1024 / 1024)}MB / ${Math.round(totalSize / 1024 / 1024)}MB`
+                                });
+                            });
+                            
+                            redirectResponse.pipe(newFile);
+                            
+                            newFile.on('finish', () => {
+                                newFile.close();
+                                resolve();
+                            });
+                            
+                            newFile.on('error', (err) => {
+                                fs.unlinkSync(tempPath);
+                                reject(err);
+                            });
+                        }).on('error', reject);
+                        return;
+                    }
+                    
+                    const totalSize = parseInt(response.headers['content-length'], 10);
+                    let downloadedSize = 0;
+                    
+                    response.on('data', (chunk) => {
+                        downloadedSize += chunk.length;
+                        const percent = Math.round((downloadedSize / totalSize) * 100);
+                        sendToRenderer('update-progress', { 
+                            percent, 
+                            status: `Downloading... ${Math.round(downloadedSize / 1024 / 1024)}MB / ${Math.round(totalSize / 1024 / 1024)}MB`
+                        });
+                    });
+                    
+                    response.pipe(file);
+                    
+                    file.on('finish', () => {
+                        file.close();
+                        resolve();
+                    });
+                });
+                
+                request.on('error', (err) => {
+                    fs.unlinkSync(tempPath);
+                    reject(err);
+                });
+            });
+            
+            console.log('[UpdateChecker] Download complete, storing path for install');
+            global.pendingUpdate.installerPath = tempPath;
+            
+            sendToRenderer('update-downloaded', { 
+                version,
+                installerPath: tempPath
+            });
+            
         } catch (error) {
             console.error('[UpdateChecker] Download failed:', error);
             sendToRenderer('update-error', 'Download failed: ' + error.message);
         }
     });
     
-    ipcMain.handle('updater:install', () => {
-        app.isQuitting = true;
-        autoUpdater.quitAndInstall(false, true);
+    // Install - run the downloaded installer and quit
+    ipcMain.handle('updater:install', async () => {
+        if (!global.pendingUpdate || !global.pendingUpdate.installerPath) {
+            sendToRenderer('update-error', 'No update downloaded. Please download first.');
+            return;
+        }
+        
+        const installerPath = global.pendingUpdate.installerPath;
+        console.log(`[UpdateChecker] Running installer: ${installerPath}`);
+        
+        try {
+            // Run installer silently
+            const { spawn } = require('child_process');
+            spawn(installerPath, ['/S'], {
+                detached: true,
+                stdio: 'ignore'
+            }).unref();
+            
+            // Quit app so installer can replace files
+            setTimeout(() => {
+                app.isQuitting = true;
+                app.quit();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('[UpdateChecker] Install failed:', error);
+            sendToRenderer('update-error', 'Install failed: ' + error.message);
+        }
     });
     
     // App info
