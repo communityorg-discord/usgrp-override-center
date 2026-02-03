@@ -14,7 +14,6 @@ const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 const os = require('os');
 const fg = require('fast-glob');
-const { setupScreenShareDetection } = require('./screenShareDetection');
 
 // Try to load node-pty for full terminal support
 let ptyModule;
@@ -744,7 +743,88 @@ function setupTerminalIPC() {
 // IPC HANDLERS
 // ═══════════════════════════════════════════════════════════════
 
+// Screen share detection state
+let screenShareMonitoring = false;
+let screenShareInterval = null;
+let lastDetectedApps = [];
+
+const CAPTURE_PROCESSES_WIN = [
+    'discord.exe', 'obs64.exe', 'obs32.exe', 'obs.exe', 'streamlabs obs.exe', 'slobs.exe',
+    'nvcontainer.exe', 'nvidia share.exe', 'gamebar.exe', 'gamebarftserver.exe',
+    'zoom.exe', 'teams.exe', 'loom.exe', 'sharex.exe', 'bandicam.exe', 'bdcam.exe',
+    'medal.exe', 'snagit.exe', 'xsplit.core.exe'
+];
+
+async function detectScreenCapture() {
+    return new Promise((resolve) => {
+        const { exec } = require('child_process');
+        exec('tasklist /fo csv /nh', { maxBuffer: 1024 * 1024 * 5 }, (error, stdout) => {
+            if (error) return resolve([]);
+            const processes = stdout.toLowerCase().split('\n').map(line => {
+                const match = line.match(/"([^"]+)"/);
+                return match ? match[1] : '';
+            }).filter(Boolean);
+            
+            const detected = [];
+            for (const proc of CAPTURE_PROCESSES_WIN) {
+                if (processes.some(p => p.includes(proc.toLowerCase()))) {
+                    let name = proc.replace('.exe', '');
+                    if (proc.includes('discord')) name = 'Discord';
+                    else if (proc.includes('obs')) name = 'OBS Studio';
+                    else if (proc.includes('zoom')) name = 'Zoom';
+                    else if (proc.includes('teams')) name = 'Teams';
+                    if (!detected.includes(name)) detected.push(name);
+                }
+            }
+            resolve(detected);
+        });
+    });
+}
+
+function startScreenShareMonitoring() {
+    if (screenShareMonitoring) return;
+    screenShareMonitoring = true;
+    
+    const check = async () => {
+        const detected = await detectScreenCapture();
+        const detectedStr = detected.sort().join(',');
+        const lastStr = lastDetectedApps.sort().join(',');
+        
+        if (detectedStr !== lastStr) {
+            lastDetectedApps = detected;
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('screen-capture-detected', {
+                    detected: detected.length > 0,
+                    apps: detected
+                });
+            }
+        }
+    };
+    
+    check();
+    screenShareInterval = setInterval(check, 3000);
+    console.log('[ScreenShare] Monitoring started');
+}
+
 function setupIPC() {
+    // Screen share detection
+    ipcMain.handle('screen-share:start', () => {
+        startScreenShareMonitoring();
+        return { success: true };
+    });
+    
+    ipcMain.handle('screen-share:stop', () => {
+        if (screenShareInterval) clearInterval(screenShareInterval);
+        screenShareMonitoring = false;
+        lastDetectedApps = [];
+        return { success: true };
+    });
+    
+    ipcMain.handle('screen-share:check', async () => {
+        const apps = await detectScreenCapture();
+        return { detected: apps.length > 0, apps };
+    });
+
     // Window controls
     ipcMain.handle('window:minimize', () => mainWindow.minimize());
     ipcMain.handle('window:maximize', () => {
@@ -1251,7 +1331,7 @@ app.whenReady().then(() => {
     setupTerminalIPC();
     setupAtlasBrainConfig();
     setupAutoUpdater();
-    setupScreenShareDetection(mainWindow);
+    startScreenShareMonitoring(); // Start screen share detection
     
     // Check if launched with protocol URL (Windows/Linux)
     const url = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`));
