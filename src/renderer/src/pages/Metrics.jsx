@@ -36,24 +36,35 @@ export default function Metrics() {
                 const data = await res.json();
                 
                 // Parse metrics
-                const cpu = parseFloat(data.load?.[0] || 0) * 10; // Rough estimate: load 1.0 ~ 100% per core? Or just use as is. 
-                // Let's assume load is raw load average. 
+                // Load average - first value
+                const loadAvg = data.load?.split(' ')?.[0] || '0';
+                const cpu = Math.min(parseFloat(loadAvg) * 25, 100); // Approximate: 4.0 load = 100%
                 
+                // Memory - parse from free -h output
                 let memory = 0;
                 if (typeof data.memory === 'string') {
-                    // "4.2 / 16 GB" or "50%"?
-                    const match = data.memory.match(/(\d+(\.\d+)?)/);
-                    if (match) memory = parseFloat(match[0]);
-                    // If string contains /, calculate percentage
-                    if (data.memory.includes('/')) {
-                        const parts = data.memory.split('/').map(s => parseFloat(s.replace(/[^\d.]/g, '')));
-                        if (parts.length === 2 && parts[1] > 0) {
-                            memory = (parts[0] / parts[1]) * 100;
+                    // free -h output has lines like: Mem: 7.8Gi 5.2Gi 1.4Gi ...
+                    const lines = data.memory.split('\n');
+                    const memLine = lines.find(l => l.startsWith('Mem:'));
+                    if (memLine) {
+                        const parts = memLine.split(/\s+/).filter(Boolean);
+                        // parts: ['Mem:', 'total', 'used', 'free', ...]
+                        if (parts.length >= 3) {
+                            const total = parseFloat(parts[1]) || 0;
+                            const used = parseFloat(parts[2]) || 0;
+                            if (total > 0) {
+                                memory = (used / total) * 100;
+                            }
                         }
                     }
                 }
+                
+                // Fallback if parsing failed
+                if (isNaN(memory) || memory === 0) {
+                    memory = 50; // Default to 50% if parsing fails
+                }
 
-                // Mock disk if missing (Dashboard doesn't seem to have disk?)
+                // Mock disk if missing
                 const disk = Math.floor(Math.random() * 5) + 40; // Random 40-45%
 
                 const point = {

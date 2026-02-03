@@ -26,28 +26,28 @@ export default function Profiler() {
             // OR better, assume /override/pm2/list exists as it is standard in USGRP ecosystem
             
             const data = await fetchApi('/override/pm2/list'); 
-            // Expected format: { success: true, processes: [ { name, pm_id, monit: { memory, cpu }, pm2_env: { restart_time } } ] }
+            // Format: { success: true, processes: [ { name, id, cpu, memory, memoryMB, restarts, ... } ] }
             
-            if (data?.processes) {
+            if (data?.processes && data.processes.length > 0) {
                 const now = new Date().toLocaleTimeString();
                 const point = { time: now };
                 const currentProcs = [];
 
                 data.processes.forEach(proc => {
-                    const memMB = Math.round(proc.monit.memory / 1024 / 1024);
+                    const memMB = proc.memoryMB || Math.round((proc.memory || 0) / 1024 / 1024);
                     point[proc.name] = memMB;
                     
                     currentProcs.push({
-                        id: proc.pm_id,
+                        id: proc.id || proc.pm_id,
                         name: proc.name,
                         mem: memMB,
-                        cpu: proc.monit.cpu,
-                        restarts: proc.pm2_env.restart_time
+                        cpu: proc.cpu || 0,
+                        restarts: proc.restarts || 0
                     });
 
                     // CPU Spike Detection
-                    if (proc.monit.cpu > 80) {
-                        addAlert(proc.name, `High CPU usage: ${proc.monit.cpu}%`);
+                    if ((proc.cpu || 0) > 80) {
+                        addAlert(proc.name, `High CPU usage: ${proc.cpu}%`);
                     }
                 });
 

@@ -1131,14 +1131,26 @@ function setupAdvancedFeatures() {
             const centerY = 300;
             const radius = 200;
             
-            nodes.forEach((node, i) => {
-                if (node.id === 'postgres') { node.x = centerX; node.y = centerY; return; }
-                if (node.id === 'redis') { node.x = centerX + 50; node.y = centerY + 50; return; }
-                
-                const angle = (i / nodes.length) * 2 * Math.PI;
-                node.x = centerX + radius * Math.cos(angle);
-                node.y = centerY + radius * Math.sin(angle);
-            });
+            // If no nodes from PM2, add a placeholder message
+            if (nodes.length === 0) {
+                nodes.push({
+                    id: 'no-services',
+                    name: 'No services detected',
+                    type: 'info',
+                    color: '#6b7280',
+                    x: centerX,
+                    y: centerY
+                });
+            } else {
+                nodes.forEach((node, i) => {
+                    if (node.id === 'postgres') { node.x = centerX; node.y = centerY; return; }
+                    if (node.id === 'redis') { node.x = centerX + 50; node.y = centerY + 50; return; }
+                    
+                    const angle = (i / nodes.length) * 2 * Math.PI;
+                    node.x = centerX + radius * Math.cos(angle);
+                    node.y = centerY + radius * Math.sin(angle);
+                });
+            }
 
             return { nodes, links };
         } catch (error) {
