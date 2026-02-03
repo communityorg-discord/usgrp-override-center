@@ -531,7 +531,6 @@ function NavItem({ item, isActive, isOpen, onHover, onLeave, onClick, onSubmenuC
                 }`}
             >
                 <span>{item.label}</span>
-                <span>{item.label}</span>
                 <svg 
                     className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                     fill="none" 
