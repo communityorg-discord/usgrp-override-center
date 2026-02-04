@@ -445,6 +445,8 @@ function TabButton({ active, onClick, children, icon }) {
 }
 
 import ResourceWidget from '../components/ResourceWidget';
+import QuickDeployWidget from '../components/QuickDeployWidget';
+import RecentActivityWidget from '../components/RecentActivityWidget';
 
 // Systems Dashboard (original content)
 function SystemsDashboard({ 
@@ -588,6 +590,16 @@ function SystemsDashboard({
                 {/* System Health Overview */}
                 <div className="col-span-1">
                     <ResourceWidget />
+                </div>
+
+                {/* Quick Deploy */}
+                <div className="col-span-1">
+                    <QuickDeployWidget />
+                </div>
+
+                {/* Recent Activity */}
+                <div className="col-span-1">
+                    <RecentActivityWidget />
                 </div>
             </div>
 

@@ -89,7 +89,6 @@ import TicketKanban from './pages/TicketKanban';
 import DeployHistory from './pages/DeployHistory';
 import SystemMonitor from './pages/SystemMonitor';
 import SessionViewer from './pages/SessionViewer';
-import CommandPalette from './components/CommandPalette';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -138,7 +137,6 @@ export default function App() {
     const [showImpersonate, setShowImpersonate] = useState(false);
     const [impersonatingUser, setImpersonatingUser] = useState(null);
     const [user, setUser] = useState(null);
-    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
 
