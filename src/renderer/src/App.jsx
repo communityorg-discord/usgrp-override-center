@@ -87,6 +87,8 @@ import JudicialPanel from './pages/JudicialPanel';
 import TicketManager from './pages/TicketManager';
 import TicketKanban from './pages/TicketKanban';
 import DeployHistory from './pages/DeployHistory';
+import SystemMonitor from './pages/SystemMonitor';
+import SessionViewer from './pages/SessionViewer';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -537,6 +539,8 @@ export default function App() {
                         <Route path="/tickets" element={<TicketManager />} />
                         <Route path="/tickets/kanban" element={<TicketKanban />} />
                         <Route path="/deploy-history" element={<DeployHistory />} />
+                        <Route path="/system-monitor" element={<SystemMonitor />} />
+                        <Route path="/sessions" element={<SessionViewer />} />
                     </Routes>
                 </main>
 

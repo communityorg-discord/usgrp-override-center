@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useApi } from '../hooks/useApi';
 
 function Sparkline({ data, color = '#10B981', height = 40 }) {
     if (!data || data.length < 2) return null;

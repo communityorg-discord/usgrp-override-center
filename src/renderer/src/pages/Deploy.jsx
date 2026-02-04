@@ -20,11 +20,13 @@ export default function Deploy() {
     const [currentCommit, setCurrentCommit] = useState('');
     const [loadingCommits, setLoadingCommits] = useState(false);
     const [rollingBack, setRollingBack] = useState(false);
+    const [repos, setRepos] = useState([]); // Store git repos with paths
 
     useEffect(() => {
         loadProjects();
         loadHistory();
         loadScheduled();
+        loadGitRepos();
         
         const interval = setInterval(loadScheduled, 30000);
         return () => clearInterval(interval);
@@ -35,6 +37,17 @@ export default function Deploy() {
             logEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [deployLog]);
+
+    async function loadGitRepos() {
+        try {
+            if (window.electron.git) {
+                const list = await window.electron.git.listRepos();
+                setRepos(list);
+            }
+        } catch (e) {
+            console.error('Failed to load git repos:', e);
+        }
+    }
 
     async function loadProjects() {
         try {
