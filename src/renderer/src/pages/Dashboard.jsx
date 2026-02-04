@@ -444,6 +444,8 @@ function TabButton({ active, onClick, children, icon }) {
     );
 }
 
+import ResourceWidget from '../components/ResourceWidget';
+
 // Systems Dashboard (original content)
 function SystemsDashboard({ 
     alerts, error, stats, chartData, processes, loading, systemInfo, 
@@ -585,54 +587,7 @@ function SystemsDashboard({
 
                 {/* System Health Overview */}
                 <div className="col-span-1">
-                    <div 
-                        className="h-full rounded-xl p-5 relative overflow-hidden"
-                        style={{
-                            background: 'linear-gradient(145deg, rgba(16, 16, 28, 0.9) 0%, rgba(10, 10, 18, 0.95) 100%)',
-                            border: '1px solid rgba(255, 255, 255, 0.04)'
-                        }}
-                    >
-                        <h2 className="heading-md text-white flex items-center gap-2 mb-5">
-                            <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600" />
-                            System Health
-                        </h2>
-                        
-                        {systemInfo ? (
-                            <div className="space-y-4">
-                                <HealthGauge 
-                                    label="CPU" 
-                                    value={stats.totalCpu} 
-                                    max={100}
-                                    color={stats.totalCpu < 60 ? 'emerald' : stats.totalCpu < 85 ? 'amber' : 'red'}
-                                />
-                                <HealthGauge 
-                                    label="Memory" 
-                                    value={Math.min((stats.totalMemory / 4096) * 100, 100)} 
-                                    max={100}
-                                    color="blue"
-                                    displayValue={`${stats.totalMemory} MB`}
-                                />
-                                <HealthGauge 
-                                    label="Services" 
-                                    value={(stats.online / (stats.online + stats.offline || 1)) * 100} 
-                                    max={100}
-                                    color={stats.offline === 0 ? 'emerald' : 'amber'}
-                                    displayValue={`${stats.online}/${stats.online + stats.offline}`}
-                                />
-                                
-                                <div className="pt-3 border-t border-white/[0.04]">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>Uptime</span>
-                                        <span className="font-mono text-emerald-400">{systemInfo.uptime}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-32">
-                                <div className="w-6 h-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                            </div>
-                        )}
-                    </div>
+                    <ResourceWidget />
                 </div>
             </div>
 

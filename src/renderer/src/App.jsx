@@ -89,6 +89,7 @@ import TicketKanban from './pages/TicketKanban';
 import DeployHistory from './pages/DeployHistory';
 import SystemMonitor from './pages/SystemMonitor';
 import SessionViewer from './pages/SessionViewer';
+import CommandPalette from './components/CommandPalette';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -102,6 +103,7 @@ export default function App() {
     const [showChangelog, setShowChangelog] = useState(false);
     const [activityMonitorOpen, setActivityMonitorOpen] = useState(false);
     const [pendingAlerts, setPendingAlerts] = useState(0);
+    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     
     // Activity tracking
     useActivityTracker();
@@ -585,6 +587,12 @@ export default function App() {
             <GlobalSearch
                 isOpen={globalSearchOpen}
                 onClose={() => setGlobalSearchOpen(false)}
+            />
+            
+            {/* Command Palette */}
+            <CommandPalette
+                isOpen={commandPaletteOpen}
+                onClose={() => setCommandPaletteOpen(false)}
             />
             
             {/* Keyboard Shortcuts */}
