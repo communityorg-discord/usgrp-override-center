@@ -86,6 +86,7 @@ import EconomySimulator from './pages/EconomySimulator';
 import JudicialPanel from './pages/JudicialPanel';
 import TicketManager from './pages/TicketManager';
 import TicketKanban from './pages/TicketKanban';
+import DeployHistory from './pages/DeployHistory';
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -535,6 +536,7 @@ export default function App() {
                         <Route path="/judicial" element={<JudicialPanel />} />
                         <Route path="/tickets" element={<TicketManager />} />
                         <Route path="/tickets/kanban" element={<TicketKanban />} />
+                        <Route path="/deploy-history" element={<DeployHistory />} />
                     </Routes>
                 </main>
 

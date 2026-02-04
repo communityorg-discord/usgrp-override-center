@@ -12,6 +12,14 @@ export default function Deploy() {
     const [scheduleDate, setScheduleDate] = useState('');
     const [projectToSchedule, setProjectToSchedule] = useState(null);
     const logEndRef = useRef(null);
+    
+    // Rollback state
+    const [showRollbackModal, setShowRollbackModal] = useState(false);
+    const [rollbackProject, setRollbackProject] = useState(null);
+    const [commits, setCommits] = useState([]);
+    const [currentCommit, setCurrentCommit] = useState('');
+    const [loadingCommits, setLoadingCommits] = useState(false);
+    const [rollingBack, setRollingBack] = useState(false);
 
     useEffect(() => {
         loadProjects();
@@ -151,6 +159,152 @@ export default function Deploy() {
         setShowScheduleModal(true);
     }
 
+    async function openRollbackModal(project) {
+        setRollbackProject(project);
+        setShowRollbackModal(true);
+        setLoadingCommits(true);
+        setCommits([]);
+        
+        try {
+            const data = await fetchApi(`/override/deploy/${project}/commits?limit=15`);
+            if (data?.commits) {
+                setCommits(data.commits);
+                setCurrentCommit(data.current);
+            }
+        } catch (error) {
+            console.error('Failed to load commits:', error);
+        } finally {
+            setLoadingCommits(false);
+        }
+    }
+
+    async function handleRollback(commit) {
+        if (rollingBack || deployingProject) return;
+        
+        const confirmed = confirm(`Rollback ${rollbackProject} to commit ${commit.short}?\n\n"${commit.message}"\n\nThis will restart the service.`);
+        if (!confirmed) return;
+        
+        setRollingBack(true);
+        setShowRollbackModal(false);
+        setDeployLog([]);
+        setDeployingProject(rollbackProject);
+        
+        try {
+            const apiBase = await window.electron.api.getBase();
+            const token = await window.electron.api.getToken();
+            
+            const response = await fetch(`${apiBase}/override/deploy/${rollbackProject}/rollback`, {
+                method: 'POST',
+                headers: {
+                    'X-Override-Token': token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ commit: commit.hash })
+            });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let hasError = false;
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(l => l.trim());
+                
+                for (const line of lines) {
+                    try {
+                        const msg = JSON.parse(line);
+                        if (msg.type === 'error' || msg.type === 'fatal') hasError = true;
+                        setDeployLog(prev => [...prev, msg]);
+                    } catch (e) {
+                        console.error('Failed to parse log line', line);
+                    }
+                }
+            }
+            
+            // Save to history
+            const newEntry = {
+                id: Date.now(),
+                project: rollbackProject,
+                timestamp: new Date().toISOString(),
+                status: hasError ? 'failed' : 'success',
+                type: 'rollback',
+                commit: commit.short,
+                user: 'You'
+            };
+            const newHistory = [newEntry, ...history].slice(0, 50);
+            setHistory(newHistory);
+            window.electron.store.set('deploy_history', newHistory);
+            
+        } catch (error) {
+            setDeployLog(prev => [...prev, { 
+                type: 'fatal', 
+                message: `Rollback Error: ${error.message}`,
+                timestamp: new Date().toISOString()
+            }]);
+        } finally {
+            setDeployingProject(null);
+            setRollingBack(false);
+            loadProjects();
+        }
+    }
+
+    async function handleReturnToLatest() {
+        if (rollingBack || deployingProject) return;
+        
+        const confirmed = confirm(`Return ${rollbackProject} to latest on main branch?\n\nThis will checkout main, pull, and restart.`);
+        if (!confirmed) return;
+        
+        setRollingBack(true);
+        setShowRollbackModal(false);
+        setDeployLog([]);
+        setDeployingProject(rollbackProject);
+        
+        try {
+            const apiBase = await window.electron.api.getBase();
+            const token = await window.electron.api.getToken();
+            
+            const response = await fetch(`${apiBase}/override/deploy/${rollbackProject}/rollback-undo`, {
+                method: 'POST',
+                headers: {
+                    'X-Override-Token': token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ branch: 'main' })
+            });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(l => l.trim());
+                
+                for (const line of lines) {
+                    try {
+                        const msg = JSON.parse(line);
+                        setDeployLog(prev => [...prev, msg]);
+                    } catch (e) {}
+                }
+            }
+        } catch (error) {
+            setDeployLog(prev => [...prev, { 
+                type: 'fatal', 
+                message: `Error: ${error.message}`,
+                timestamp: new Date().toISOString()
+            }]);
+        } finally {
+            setDeployingProject(null);
+            setRollingBack(false);
+            loadProjects();
+        }
+    }
+
     function getStatusColor(type) {
         switch (type) {
             case 'success': return 'text-emerald-400';
@@ -219,6 +373,16 @@ export default function Deploy() {
                                         {deployingProject === p.name ? 'Deploying...' : '🚀 Deploy Now'}
                                     </button>
                                     <button
+                                        onClick={() => openRollbackModal(p.name)}
+                                        disabled={!p.available || deployingProject !== null}
+                                        className="px-3 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded-lg transition-colors"
+                                        title="Rollback to Previous Version"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                    </button>
+                                    <button
                                         onClick={() => openScheduleModal(p.name)}
                                         disabled={!p.available}
                                         className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
@@ -285,6 +449,11 @@ export default function Deploy() {
                                             {h.status === 'success' ? '✓' : '✗'}
                                         </span>
                                         <span className="text-white">{h.project}</span>
+                                        {h.type === 'rollback' && (
+                                            <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                                ⏪ {h.commit}
+                                            </span>
+                                        )}
                                     </div>
                                     <span className="text-gray-500">{new Date(h.timestamp).toLocaleTimeString()}</span>
                                 </div>
@@ -359,6 +528,84 @@ export default function Deploy() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Rollback Modal */}
+            {showRollbackModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-[#1a1a24] p-6 rounded-xl border border-white/10 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                </svg>
+                                Rollback: {rollbackProject}
+                            </h2>
+                            <button onClick={() => setShowRollbackModal(false)} className="text-gray-500 hover:text-white">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {loadingCommits ? (
+                            <div className="flex-1 flex items-center justify-center text-gray-500">
+                                <svg className="animate-spin w-8 h-8" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="mb-3 p-2 bg-blue-900/20 border border-blue-500/30 rounded-lg text-xs text-blue-300">
+                                    <span className="font-bold">Current:</span> {currentCommit?.substring(0, 7)}
+                                    <button 
+                                        onClick={handleReturnToLatest}
+                                        className="ml-3 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[10px] font-bold"
+                                    >
+                                        ↑ Return to Latest
+                                    </button>
+                                </div>
+                                
+                                <div className="flex-1 overflow-auto space-y-2 pr-2">
+                                    {commits.map((c, i) => (
+                                        <div 
+                                            key={c.hash}
+                                            className={`p-3 rounded-lg border transition-all cursor-pointer hover:border-purple-500/50 ${
+                                                currentCommit === c.hash 
+                                                    ? 'bg-green-900/20 border-green-500/50' 
+                                                    : 'bg-black/30 border-white/5'
+                                            }`}
+                                            onClick={() => currentCommit !== c.hash && handleRollback(c)}
+                                        >
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs bg-gray-800 px-1.5 py-0.5 rounded text-purple-300">
+                                                        {c.short}
+                                                    </span>
+                                                    {currentCommit === c.hash && (
+                                                        <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-bold">
+                                                            CURRENT
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] text-gray-500">
+                                                    {new Date(c.date).toLocaleDateString()} {new Date(c.date).toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-white truncate">{c.message}</p>
+                                            <p className="text-[10px] text-gray-500 mt-1">{c.author}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <p className="mt-3 text-[10px] text-gray-600 text-center">
+                                    Click a commit to rollback. This will checkout that commit, reinstall deps, rebuild, and restart.
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
